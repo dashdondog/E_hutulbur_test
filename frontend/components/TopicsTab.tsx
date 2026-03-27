@@ -1,22 +1,18 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Topic } from "@/shared/types";
 import * as store from "@/frontend/lib/store";
 
 interface Props {
   subjectId: string;
-  onUpdate?: () => void;
+  topics: Topic[];
+  onUpdate: () => void;
 }
 
 const empty = { name: "", description: "", subtopicsText: "" };
 
-export default function TopicsTab({ subjectId, onUpdate }: Props) {
-  const [topics, setTopics] = useState<Topic[]>([]);
-
-  useEffect(() => {
-    store.getTopics(subjectId).then(setTopics);
-  }, [subjectId]);
+export default function TopicsTab({ subjectId, topics, onUpdate }: Props) {
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState(empty);
@@ -38,7 +34,7 @@ export default function TopicsTab({ subjectId, onUpdate }: Props) {
     setShowForm(true);
   }
 
-  async function save() {
+  function save() {
     if (!form.name.trim()) return;
     const topic: Topic = {
       id: editId || crypto.randomUUID(),
@@ -53,19 +49,17 @@ export default function TopicsTab({ subjectId, onUpdate }: Props) {
         ? topics.find((t) => t.id === editId)!.order
         : topics.length,
     };
-    await store.saveTopic(topic);
+    store.saveTopic(topic);
     setShowForm(false);
     setForm(empty);
     setEditId(null);
-    store.getTopics(subjectId).then(setTopics);
-    onUpdate?.();
+    onUpdate();
   }
 
-  async function remove(id: string) {
+  function remove(id: string) {
     if (!confirm("Энэ сэдвийг устгах уу?")) return;
-    await store.deleteTopic(id);
-    store.getTopics(subjectId).then(setTopics);
-    onUpdate?.();
+    store.deleteTopic(id);
+    onUpdate();
   }
 
   return (

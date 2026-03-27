@@ -2,110 +2,111 @@
 
 import { Curriculum, Topic, Test } from "@/shared/types";
 
+const STORAGE_KEYS = {
+  curricula: "edu_curricula",
+  topics: "edu_topics",
+  tests: "edu_tests",
+};
+
+function getItem<T>(key: string): T[] {
+  if (typeof window === "undefined") return [];
+  const data = localStorage.getItem(key);
+  return data ? JSON.parse(data) : [];
+}
+
+function setItem<T>(key: string, data: T[]): void {
+  localStorage.setItem(key, JSON.stringify(data));
+}
+
 // Curriculum
-export async function getCurricula(subjectId: string): Promise<Curriculum[]> {
-  const res = await fetch(`/api/curricula?subjectId=${subjectId}`);
-  if (!res.ok) return [];
-  const data = await res.json();
-  return data.curricula || [];
+export function getCurricula(subjectId: string): Curriculum[] {
+  return getItem<Curriculum>(STORAGE_KEYS.curricula).filter(
+    (c) => c.subjectId === subjectId
+  );
 }
 
-export async function saveCurriculum(curriculum: Curriculum): Promise<void> {
-  await fetch("/api/curricula", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(curriculum),
-  });
+export function saveCurriculum(curriculum: Curriculum): void {
+  const all = getItem<Curriculum>(STORAGE_KEYS.curricula);
+  const idx = all.findIndex((c) => c.id === curriculum.id);
+  if (idx >= 0) all[idx] = curriculum;
+  else all.push(curriculum);
+  setItem(STORAGE_KEYS.curricula, all);
 }
 
-export async function deleteCurriculum(id: string): Promise<void> {
-  await fetch("/api/curricula", {
-    method: "DELETE",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ id }),
-  });
+export function deleteCurriculum(id: string): void {
+  const all = getItem<Curriculum>(STORAGE_KEYS.curricula).filter(
+    (c) => c.id !== id
+  );
+  setItem(STORAGE_KEYS.curricula, all);
 }
 
 // Topics
-export async function getTopics(subjectId: string): Promise<Topic[]> {
-  const res = await fetch(`/api/topics?subjectId=${subjectId}`);
-  if (!res.ok) return [];
-  const data = await res.json();
-  return data.topics || [];
+export function getTopics(subjectId: string): Topic[] {
+  return getItem<Topic>(STORAGE_KEYS.topics)
+    .filter((t) => t.subjectId === subjectId)
+    .sort((a, b) => a.order - b.order);
 }
 
-export async function saveTopic(topic: Topic): Promise<void> {
-  await fetch("/api/topics", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(topic),
-  });
+export function saveTopic(topic: Topic): void {
+  const all = getItem<Topic>(STORAGE_KEYS.topics);
+  const idx = all.findIndex((t) => t.id === topic.id);
+  if (idx >= 0) all[idx] = topic;
+  else all.push(topic);
+  setItem(STORAGE_KEYS.topics, all);
 }
 
-export async function deleteTopic(id: string): Promise<void> {
-  await fetch("/api/topics", {
-    method: "DELETE",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ id }),
-  });
+export function deleteTopic(id: string): void {
+  const all = getItem<Topic>(STORAGE_KEYS.topics).filter((t) => t.id !== id);
+  setItem(STORAGE_KEYS.topics, all);
 }
 
 // Tests
-export async function getTests(subjectId: string): Promise<Test[]> {
-  const res = await fetch(`/api/tests?subjectId=${subjectId}`);
-  if (!res.ok) return [];
-  const data = await res.json();
-  return data.tests || [];
+export function getTests(subjectId: string): Test[] {
+  return getItem<Test>(STORAGE_KEYS.tests).filter(
+    (t) => t.subjectId === subjectId
+  );
 }
 
-export async function getTestsByTopic(subjectId: string, topicId: string): Promise<Test[]> {
-  const res = await fetch(`/api/tests?subjectId=${subjectId}&topicId=${topicId}`);
-  if (!res.ok) return [];
-  const data = await res.json();
-  return data.tests || [];
+export function getTestsByTopic(subjectId: string, topicId: string): Test[] {
+  return getItem<Test>(STORAGE_KEYS.tests).filter(
+    (t) => t.subjectId === subjectId && t.topicId === topicId
+  );
 }
 
-export async function getTestById(testId: string): Promise<Test | undefined> {
-  const res = await fetch(`/api/tests?testId=${testId}`);
-  if (!res.ok) return undefined;
-  const data = await res.json();
-  return data.test || undefined;
+export function getTestById(testId: string): Test | undefined {
+  return getItem<Test>(STORAGE_KEYS.tests).find((t) => t.id === testId);
 }
 
-export async function saveTest(test: Test): Promise<void> {
-  await fetch("/api/tests", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(test),
-  });
+export function saveTest(test: Test): void {
+  const all = getItem<Test>(STORAGE_KEYS.tests);
+  const idx = all.findIndex((t) => t.id === test.id);
+  if (idx >= 0) all[idx] = test;
+  else all.push(test);
+  setItem(STORAGE_KEYS.tests, all);
 }
 
-export async function deleteTest(id: string): Promise<void> {
-  await fetch("/api/tests", {
-    method: "DELETE",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ id }),
-  });
+export function deleteTest(id: string): void {
+  const all = getItem<Test>(STORAGE_KEYS.tests).filter((t) => t.id !== id);
+  setItem(STORAGE_KEYS.tests, all);
 }
 
 // All (for global search)
-export async function getAllTopics(): Promise<Topic[]> {
-  const res = await fetch("/api/topics");
-  if (!res.ok) return [];
-  const data = await res.json();
-  return data.topics || [];
+export function getAllTopics(): Topic[] {
+  return getItem<Topic>(STORAGE_KEYS.topics);
 }
 
-export async function getAllTests(): Promise<Test[]> {
-  const res = await fetch("/api/tests");
-  if (!res.ok) return [];
-  const data = await res.json();
-  return data.tests || [];
+export function getAllTests(): Test[] {
+  return getItem<Test>(STORAGE_KEYS.tests);
 }
 
 // Stats
-export async function getStats(): Promise<{ totalTopics: number; totalTests: number; totalQuestions: number }> {
-  const res = await fetch("/api/stats");
-  if (!res.ok) return { totalTopics: 0, totalTests: 0, totalQuestions: 0 };
-  return res.json();
+export function getStats() {
+  const topics = getItem<Topic>(STORAGE_KEYS.topics);
+  const tests = getItem<Test>(STORAGE_KEYS.tests);
+  const questions = tests.reduce((sum, t) => sum + t.questions.length, 0);
+  return {
+    totalTopics: topics.length,
+    totalTests: tests.length,
+    totalQuestions: questions,
+  };
 }

@@ -18,12 +18,6 @@ export async function getDb(): Promise<Db> {
   // Create indexes
   await db.collection("users").createIndex({ email: 1 }, { unique: true });
   await db.collection("testResults").createIndex({ userId: 1, submittedAt: -1 });
-  await db.collection("curricula").createIndex({ subjectId: 1 });
-  await db.collection("topics").createIndex({ subjectId: 1, order: 1 });
-  await db.collection("tests").createIndex({ subjectId: 1 });
-  await db.collection("tests").createIndex({ topicId: 1 });
-  await db.collection("files").createIndex({ subjectId: 1 });
-  await db.collection("extractedTexts").createIndex({ subjectId: 1 });
 
   return db;
 }

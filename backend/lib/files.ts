@@ -1,10 +1,15 @@
-import { Binary } from "mongodb";
-import { getDb } from "./mongodb";
+import fs from "fs";
+import path from "path";
+
+const DATA_DIR = path.join(process.cwd(), "backend", "data");
+const UPLOADS_DIR = path.join(DATA_DIR, "uploads");
+const TEXTS_DIR = path.join(DATA_DIR, "texts");
 
 export interface UploadedFile {
   id: string;
   subjectId: string;
   fileName: string;
+  filePath: string;
   fileSize: number;
   mimeType: string;
   uploadedAt: string;
@@ -16,141 +21,96 @@ export interface SubjectTexts {
   updatedAt: string;
 }
 
-// Save uploaded file buffer as Binary to MongoDB `files` collection
-export async function saveUploadedFile(
+function ensureDir(dir: string) {
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+}
+
+// File metadata
+function getMetaPath() {
+  return path.join(DATA_DIR, "files-meta.json");
+}
+
+export function getAllFiles(): UploadedFile[] {
+  const metaPath = getMetaPath();
+  if (!fs.existsSync(metaPath)) return [];
+  return JSON.parse(fs.readFileSync(metaPath, "utf-8"));
+}
+
+export function getFilesBySubject(subjectId: string): UploadedFile[] {
+  return getAllFiles().filter((f) => f.subjectId === subjectId);
+}
+
+export function saveFileMeta(file: UploadedFile) {
+  const all = getAllFiles();
+  all.push(file);
+  fs.writeFileSync(getMetaPath(), JSON.stringify(all, null, 2));
+}
+
+export function deleteFileMeta(fileId: string) {
+  const all = getAllFiles().filter((f) => f.id !== fileId);
+  fs.writeFileSync(getMetaPath(), JSON.stringify(all, null, 2));
+}
+
+// Upload file to disk
+export function saveUploadedFile(
   subjectId: string,
   fileId: string,
   fileName: string,
   buffer: Buffer
-): Promise<void> {
-  const db = await getDb();
-  await db.collection("files").insertOne({
-    id: fileId,
-    subjectId,
-    fileName,
-    fileData: new Binary(buffer),
-    fileSize: buffer.length,
-    uploadedAt: new Date().toISOString(),
-  });
+): string {
+  const subjectDir = path.join(UPLOADS_DIR, subjectId);
+  ensureDir(subjectDir);
+  const ext = path.extname(fileName);
+  const filePath = path.join(subjectDir, `${fileId}${ext}`);
+  fs.writeFileSync(filePath, buffer);
+  return filePath;
 }
 
-// Save file metadata to MongoDB `files` collection (updates existing doc)
-export async function saveFileMeta(file: UploadedFile): Promise<void> {
-  const db = await getDb();
-  await db.collection("files").updateOne(
-    { id: file.id },
-    {
-      $set: {
-        subjectId: file.subjectId,
-        fileName: file.fileName,
-        fileSize: file.fileSize,
-        mimeType: file.mimeType,
-        uploadedAt: file.uploadedAt,
-      },
-    },
-    { upsert: true }
-  );
+export function deleteUploadedFile(filePath: string) {
+  if (fs.existsSync(filePath)) {
+    fs.unlinkSync(filePath);
+  }
 }
 
-// Get all files for a subject
-export async function getFilesBySubject(subjectId: string): Promise<UploadedFile[]> {
-  const db = await getDb();
-  const docs = await db
-    .collection("files")
-    .find({ subjectId }, { projection: { fileData: 0, _id: 0 } })
-    .toArray();
-  return docs.map((d) => ({
-    id: d.id,
-    subjectId: d.subjectId,
-    fileName: d.fileName,
-    fileSize: d.fileSize,
-    mimeType: d.mimeType,
-    uploadedAt: d.uploadedAt,
-  }));
+// Extracted texts per subject
+function getTextsPath(subjectId: string) {
+  ensureDir(TEXTS_DIR);
+  return path.join(TEXTS_DIR, `${subjectId}.json`);
 }
 
-// Delete file metadata from MongoDB
-export async function deleteFileMeta(fileId: string): Promise<void> {
-  const db = await getDb();
-  await db.collection("files").deleteOne({ id: fileId });
+export function getSubjectTexts(subjectId: string): SubjectTexts {
+  const p = getTextsPath(subjectId);
+  if (!fs.existsSync(p)) {
+    return { subjectId, files: [], updatedAt: "" };
+  }
+  return JSON.parse(fs.readFileSync(p, "utf-8"));
 }
 
-// Delete uploaded file data from MongoDB by fileId
-export async function deleteUploadedFile(fileId: string): Promise<void> {
-  const db = await getDb();
-  await db.collection("files").deleteOne({ id: fileId });
-}
-
-// Get file buffer from MongoDB
-export async function getFileBuffer(fileId: string): Promise<Buffer | null> {
-  const db = await getDb();
-  const doc = await db.collection("files").findOne({ id: fileId });
-  if (!doc || !doc.fileData) return null;
-  return doc.fileData.buffer as Buffer;
-}
-
-// Save extracted text to MongoDB `extractedTexts` collection
-export async function saveExtractedText(
+export function saveExtractedText(
   subjectId: string,
   fileId: string,
   fileName: string,
   text: string
-): Promise<void> {
-  const db = await getDb();
-  await db.collection("extractedTexts").insertOne({
-    subjectId,
-    fileId,
-    fileName,
-    text,
-    updatedAt: new Date().toISOString(),
-  });
+) {
+  const data = getSubjectTexts(subjectId);
+  data.files.push({ fileId, fileName, text });
+  data.updatedAt = new Date().toISOString();
+  fs.writeFileSync(getTextsPath(subjectId), JSON.stringify(data, null, 2));
 }
 
-// Get all extracted texts for a subject
-export async function getSubjectTexts(subjectId: string): Promise<SubjectTexts> {
-  const db = await getDb();
-  const docs = await db
-    .collection("extractedTexts")
-    .find({ subjectId })
-    .toArray();
-  const files = docs.map((d) => ({
-    fileId: d.fileId,
-    fileName: d.fileName,
-    text: d.text,
-  }));
-  const latestUpdate = docs.length > 0
-    ? docs.reduce((latest, d) => (d.updatedAt > latest ? d.updatedAt : latest), "")
-    : "";
-  return { subjectId, files, updatedAt: latestUpdate };
+export function removeExtractedText(subjectId: string, fileId: string) {
+  const data = getSubjectTexts(subjectId);
+  data.files = data.files.filter((f) => f.fileId !== fileId);
+  data.updatedAt = new Date().toISOString();
+  fs.writeFileSync(getTextsPath(subjectId), JSON.stringify(data, null, 2));
 }
 
-// Remove extracted text for a specific file
-export async function removeExtractedText(subjectId: string, fileId: string): Promise<void> {
-  const db = await getDb();
-  await db.collection("extractedTexts").deleteMany({ subjectId, fileId });
-}
-
-// Get combined text for AI consumption
-export async function getCombinedText(subjectId: string): Promise<string> {
-  const data = await getSubjectTexts(subjectId);
+// Get combined text for AI
+export function getCombinedText(subjectId: string): string {
+  const data = getSubjectTexts(subjectId);
   return data.files
     .map((f) => `=== ${f.fileName} ===\n${f.text}`)
     .join("\n\n");
-}
-
-// Get all files across all subjects
-export async function getAllFiles(): Promise<UploadedFile[]> {
-  const db = await getDb();
-  const docs = await db
-    .collection("files")
-    .find({}, { projection: { fileData: 0, _id: 0 } })
-    .toArray();
-  return docs.map((d) => ({
-    id: d.id,
-    subjectId: d.subjectId,
-    fileName: d.fileName,
-    fileSize: d.fileSize,
-    mimeType: d.mimeType,
-    uploadedAt: d.uploadedAt,
-  }));
 }

@@ -92,15 +92,15 @@ export default function CurriculumTab({ subjectId, curricula, onUpdate }: Props)
   function openNew() { setForm(emptyForm()); setEditId(null); setShowForm(true); }
   function openEdit(c: Curriculum) { setForm(curriculumToForm(c)); setEditId(c.id); setShowForm(true); }
 
-  async function save() {
+  function save() {
     if (!form.name.trim()) return;
     const curriculum = formToCurriculum(form, editId || crypto.randomUUID(), subjectId,
       editId ? curricula.find(c => c.id === editId)!.createdAt : new Date().toISOString());
-    await store.saveCurriculum(curriculum);
+    store.saveCurriculum(curriculum);
     setShowForm(false); setForm(emptyForm()); setEditId(null); onUpdate();
   }
 
-  async function remove(id: string) { if (!confirm("Устгах уу?")) return; await store.deleteCurriculum(id); onUpdate(); }
+  function remove(id: string) { if (!confirm("Устгах уу?")) return; store.deleteCurriculum(id); onUpdate(); }
 
   function handleDownloadPdf(c: Curriculum) {
     if (isLessonPlan(c.content)) downloadLessonPlanPdf(c.content, isCriteriaArray(c.criteria) ? c.criteria : undefined);
@@ -115,7 +115,7 @@ export default function CurriculumTab({ subjectId, curricula, onUpdate }: Props)
         <h2 className="text-lg font-semibold text-[var(--color-text)]">Нэгж хөтөлбөрүүд</h2>
         <div className="flex gap-2">
           {curricula.length > 0 && (
-            <button onClick={async () => { if (confirm("Бүх хөтөлбөрийг устгах уу?")) { await Promise.all(curricula.map(c => store.deleteCurriculum(c.id))); onUpdate(); } }}
+            <button onClick={() => { if (confirm("Бүх хөтөлбөрийг устгах уу?")) { curricula.forEach(c => store.deleteCurriculum(c.id)); onUpdate(); } }}
               className="bg-red-50 text-red-600 px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-100 transition-colors">
               Бүгдийг устгах
             </button>

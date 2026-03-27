@@ -14,7 +14,7 @@ export default function HomePage() {
   });
 
   useEffect(() => {
-    getStats().then(setStats);
+    setStats(getStats());
   }, []);
 
   return (

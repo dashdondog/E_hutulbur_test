@@ -24,12 +24,11 @@ export default function TakeTestPage() {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
-    store.getTestById(testId).then((t) => {
-      if (t) {
-        setTest(t);
-        setTimeLeft(t.duration * 60);
-      }
-    });
+    const t = store.getTestById(testId);
+    if (t) {
+      setTest(t);
+      setTimeLeft(t.duration * 60);
+    }
   }, [testId]);
 
   const handleSubmit = useCallback(() => {
