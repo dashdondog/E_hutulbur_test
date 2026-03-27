@@ -18,8 +18,15 @@ export default function GlobalSearch() {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const [focused, setFocused] = useState(false);
+  const [allTopics, setAllTopics] = useState<Topic[]>([]);
+  const [allTests, setAllTests] = useState<Test[]>([]);
   const ref = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    getAllTopics().then(setAllTopics);
+    getAllTests().then(setAllTests);
+  }, []);
 
   // Close on click outside
   useEffect(() => {
@@ -54,7 +61,6 @@ export default function GlobalSearch() {
       s.name.toLowerCase().includes(q)
     );
 
-    const allTopics = getAllTopics();
     const matchedTopics = allTopics.filter(
       (t) =>
         t.name.toLowerCase().includes(q) ||
@@ -62,7 +68,6 @@ export default function GlobalSearch() {
         t.subtopics.some((s) => s.toLowerCase().includes(q))
     );
 
-    const allTests = getAllTests();
     const matchedTests = allTests.filter(
       (t) =>
         t.name.toLowerCase().includes(q) ||
@@ -74,7 +79,7 @@ export default function GlobalSearch() {
       topics: matchedTopics.slice(0, 8),
       tests: matchedTests.slice(0, 8),
     };
-  }, [query]);
+  }, [query, allTopics, allTests]);
 
   const hasResults =
     results.subjects.length > 0 ||

@@ -46,10 +46,15 @@ export default function SubjectPage() {
     setFiles(data.files || []);
   }, [subjectId]);
 
-  const reloadData = useCallback(() => {
-    setCurricula(store.getCurricula(subjectId));
-    setTopics(store.getTopics(subjectId));
-    setTests(store.getTests(subjectId));
+  const reloadData = useCallback(async () => {
+    const [c, t, te] = await Promise.all([
+      store.getCurricula(subjectId),
+      store.getTopics(subjectId),
+      store.getTests(subjectId),
+    ]);
+    setCurricula(c);
+    setTopics(t);
+    setTests(te);
   }, [subjectId]);
 
   useEffect(() => {
@@ -93,9 +98,9 @@ export default function SubjectPage() {
           weeks: 10,
           createdAt: new Date().toISOString(),
         };
-        store.saveCurriculum(curriculum);
+        await store.saveCurriculum(curriculum);
       }
-      reloadData();
+      await reloadData();
       setActiveTab("curriculum");
     } catch {
       alert("Хөтөлбөр үүсгэхэд алдаа гарлаа");
@@ -123,24 +128,20 @@ export default function SubjectPage() {
         alert(data.error);
         return;
       }
-      // Save topics to local storage
-      data.topics.forEach(
-        (
-          t: { name: string; description: string; subtopics: string[] },
-          idx: number
-        ) => {
-          const topic: Topic = {
-            id: crypto.randomUUID(),
-            subjectId,
-            name: t.name,
-            description: t.description,
-            subtopics: t.subtopics,
-            order: idx,
-          };
-          store.saveTopic(topic);
-        }
-      );
-      reloadData();
+      // Save topics to store
+      for (let idx = 0; idx < data.topics.length; idx++) {
+        const t: { name: string; description: string; subtopics: string[] } = data.topics[idx];
+        const topic: Topic = {
+          id: crypto.randomUUID(),
+          subjectId,
+          name: t.name,
+          description: t.description,
+          subtopics: t.subtopics,
+          order: idx,
+        };
+        await store.saveTopic(topic);
+      }
+      await reloadData();
       setActiveTab("topics");
     } catch {
       alert("Сэдвүүд үүсгэхэд алдаа гарлаа");
@@ -188,8 +189,8 @@ export default function SubjectPage() {
         ),
         createdAt: new Date().toISOString(),
       };
-      store.saveTest(test);
-      reloadData();
+      await store.saveTest(test);
+      await reloadData();
       setActiveTab("tests");
     } catch {
       alert("Тест үүсгэхэд алдаа гарлаа");
@@ -449,7 +450,6 @@ export default function SubjectPage() {
             )}
             <TopicsTab
               subjectId={subjectId}
-              topics={topics}
               onUpdate={reloadData}
             />
           </div>
@@ -487,8 +487,6 @@ export default function SubjectPage() {
             )}
             <TestsTab
               subjectId={subjectId}
-              topics={topics}
-              tests={tests}
               onUpdate={reloadData}
             />
           </div>

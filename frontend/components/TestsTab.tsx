@@ -1,15 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Topic, Test, Question } from "@/shared/types";
 import * as store from "@/frontend/lib/store";
 import Link from "next/link";
 
 interface Props {
   subjectId: string;
-  topics: Topic[];
-  tests: Test[];
-  onUpdate: () => void;
+  onUpdate?: () => void;
 }
 
 function emptyQuestion(): Question {
@@ -23,7 +21,15 @@ function emptyQuestion(): Question {
   };
 }
 
-export default function TestsTab({ subjectId, topics, tests, onUpdate }: Props) {
+export default function TestsTab({ subjectId, onUpdate }: Props) {
+  const [topics, setTopics] = useState<Topic[]>([]);
+  const [tests, setTests] = useState<Test[]>([]);
+
+  useEffect(() => {
+    store.getTopics(subjectId).then(setTopics);
+    store.getTests(subjectId).then(setTests);
+  }, [subjectId]);
+
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [selectedTopicFilter, setSelectedTopicFilter] = useState<string>("all");
@@ -101,7 +107,7 @@ export default function TestsTab({ subjectId, topics, tests, onUpdate }: Props) 
     updateQuestion(idx, { type, options, correctAnswer: 0 });
   }
 
-  function save() {
+  async function save() {
     if (!testName.trim() || !testTopicId) return;
     const validQuestions = questions.filter((q) => q.text.trim());
     if (validQuestions.length === 0) return;
@@ -118,16 +124,18 @@ export default function TestsTab({ subjectId, topics, tests, onUpdate }: Props) 
       questions: validQuestions,
       createdAt: existing?.createdAt || new Date().toISOString(),
     };
-    store.saveTest(test);
+    await store.saveTest(test);
     setShowForm(false);
     setEditId(null);
-    onUpdate();
+    store.getTests(subjectId).then(setTests);
+    onUpdate?.();
   }
 
-  function remove(id: string) {
+  async function remove(id: string) {
     if (!confirm("Тест устгах уу?")) return;
-    store.deleteTest(id);
-    onUpdate();
+    await store.deleteTest(id);
+    store.getTests(subjectId).then(setTests);
+    onUpdate?.();
   }
 
   return (

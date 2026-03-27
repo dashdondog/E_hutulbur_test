@@ -17,12 +17,15 @@ export default function StudentDashboard() {
   const [activeTab, setActiveTab] = useState<"progress" | "tests" | "results">("progress");
 
   useEffect(() => {
-    // Load all tests from localStorage
-    const testsBySubject = subjects.map((s) => ({
-      subjectId: s.id,
-      tests: store.getTests(s.id),
-    })).filter((s) => s.tests.length > 0);
-    setAllTests(testsBySubject);
+    // Load all tests from API
+    Promise.all(
+      subjects.map(async (s) => ({
+        subjectId: s.id,
+        tests: await store.getTests(s.id),
+      }))
+    ).then((results) => {
+      setAllTests(results.filter((s) => s.tests.length > 0));
+    });
 
     // Load results from MongoDB
     fetch("/api/test-results")
