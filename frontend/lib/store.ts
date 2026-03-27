@@ -90,6 +90,15 @@ export function deleteTest(id: string): void {
   setItem(STORAGE_KEYS.tests, all);
 }
 
+// All (for global search)
+export function getAllTopics(): Topic[] {
+  return getItem<Topic>(STORAGE_KEYS.topics);
+}
+
+export function getAllTests(): Test[] {
+  return getItem<Test>(STORAGE_KEYS.tests);
+}
+
 // Stats
 export function getStats() {
   const topics = getItem<Topic>(STORAGE_KEYS.topics);

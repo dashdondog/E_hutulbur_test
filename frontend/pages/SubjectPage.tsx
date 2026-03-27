@@ -5,10 +5,16 @@ import { useState, useEffect, useCallback } from "react";
 import { subjects } from "@/shared/subjects";
 import { Subject, Curriculum, Topic, Test } from "@/shared/types";
 import * as store from "@/frontend/lib/store";
+import SubjectIcon from "@/frontend/components/SubjectIcon";
 import FileUpload from "@/frontend/components/FileUpload";
 import CurriculumTab from "@/frontend/components/CurriculumTab";
 import TopicsTab from "@/frontend/components/TopicsTab";
 import TestsTab from "@/frontend/components/TestsTab";
+import ResultsTab from "@/frontend/components/ResultsTab";
+import { useAuth } from "@/frontend/lib/auth-context";
+import { FolderOpen, BookOpen, List, ClipboardList, BarChart3 } from "lucide-react";
+import type { ComponentType } from "react";
+import type { LucideProps } from "lucide-react";
 
 interface UploadedFile {
   id: string;
@@ -18,11 +24,12 @@ interface UploadedFile {
   uploadedAt: string;
 }
 
-type Tab = "files" | "curriculum" | "topics" | "tests";
+type Tab = "files" | "curriculum" | "topics" | "tests" | "results";
 
 export default function SubjectPage() {
   const params = useParams();
   const subjectId = params.id as string;
+  const { user } = useAuth();
   const subject = subjects.find((s) => s.id === subjectId) as Subject;
 
   const [activeTab, setActiveTab] = useState<Tab>("files");
@@ -210,34 +217,30 @@ export default function SubjectPage() {
 
   if (!subject) {
     return (
-      <div className="p-8 text-center text-slate-500">Хичээл олдсонгүй</div>
+      <div className="p-8 text-center text-[var(--color-text-secondary)]">Хичээл олдсонгүй</div>
     );
   }
 
-  const tabs: { key: Tab; label: string; count: number; icon: string }[] = [
-    { key: "files", label: "Файлууд", count: files.length, icon: "📂" },
-    { key: "curriculum", label: "Хөтөлбөр", count: curricula.length, icon: "📋" },
-    { key: "topics", label: "Сэдвүүд", count: topics.length, icon: "📑" },
-    { key: "tests", label: "Тестүүд", count: tests.length, icon: "✅" },
+  const tabs: { key: Tab; label: string; count: number; icon: ComponentType<LucideProps> }[] = [
+    { key: "files", label: "Файлууд", count: files.length, icon: FolderOpen },
+    { key: "curriculum", label: "Хөтөлбөр", count: curricula.length, icon: BookOpen },
+    { key: "topics", label: "Сэдвүүд", count: topics.length, icon: List },
+    { key: "tests", label: "Тестүүд", count: tests.length, icon: ClipboardList },
+    ...(user?.role === "teacher" ? [{ key: "results" as Tab, label: "Дүнгүүд", count: 0, icon: BarChart3 }] : []),
   ];
 
   return (
-    <div className="p-8">
+    <div className="p-4 sm:p-8">
       <div className="max-w-5xl mx-auto">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-4">
-            <div
-              className="w-14 h-14 rounded-xl flex items-center justify-center text-3xl"
-              style={{ backgroundColor: subject.color + "15" }}
-            >
-              {subject.icon}
-            </div>
+        <div className="flex items-center justify-between mb-4 sm:mb-6">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <SubjectIcon icon={subject.icon} color={subject.color} size="lg" />
             <div>
-              <h1 className="text-2xl font-bold text-slate-800">
+              <h1 className="text-xl sm:text-2xl font-bold text-[var(--color-text)]">
                 {subject.name}
               </h1>
-              <p className="text-sm text-slate-500">
+              <p className="text-xs sm:text-sm text-[var(--color-text-secondary)]">
                 11-р ангийн сурах бичиг • {files.length} файл
               </p>
             </div>
@@ -245,21 +248,21 @@ export default function SubjectPage() {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 bg-slate-100 rounded-lg p-1 mb-6 w-fit">
+        <div className="flex gap-1 bg-[var(--color-surface-alt)] rounded-lg p-1 mb-4 sm:mb-6 w-full sm:w-fit overflow-x-auto">
           {tabs.map((tab) => (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className={`flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              className={`flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
                 activeTab === tab.key
-                  ? "bg-white text-slate-800 shadow-sm"
-                  : "text-slate-500 hover:text-slate-700"
+                  ? "bg-[var(--color-surface)] text-[var(--color-text)] shadow-sm"
+                  : "text-[var(--color-text-secondary)] hover:text-[var(--color-text)]"
               }`}
             >
-              <span>{tab.icon}</span>
+              <tab.icon size={14} />
               {tab.label}
               {tab.count > 0 && (
-                <span className="ml-1 bg-slate-200 text-slate-600 text-xs px-1.5 py-0.5 rounded-full">
+                <span className="ml-1 bg-[var(--color-surface-alt)] text-[var(--color-text-secondary)] text-xs px-1.5 py-0.5 rounded-full">
                   {tab.count}
                 </span>
               )}
@@ -271,7 +274,7 @@ export default function SubjectPage() {
         {activeTab === "files" && (
           <div>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-slate-700">
+              <h2 className="text-lg font-semibold text-[var(--color-text)]">
                 Сурах бичиг & Нэмэлт материал
               </h2>
             </div>
@@ -283,11 +286,11 @@ export default function SubjectPage() {
 
             {/* AI Generate Actions */}
             {files.length > 0 && (
-              <div className="mt-6 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl border border-blue-200 p-6">
-                <h3 className="text-base font-semibold text-slate-800 mb-1">
+              <div className="mt-6 bg-gradient-to-r from-[var(--color-primary)]/10 to-[var(--color-accent)]/10 rounded-xl border border-[var(--color-primary)]/20 p-4 sm:p-6">
+                <h3 className="text-base font-semibold text-[var(--color-text)] mb-1">
                   AI-р автомат үүсгэх
                 </h3>
-                <p className="text-sm text-slate-500 mb-4">
+                <p className="text-sm text-[var(--color-text-secondary)] mb-4">
                   Байршуулсан файлуудын агуулгаас автоматаар хөтөлбөр, сэдэв, тест
                   үүсгэнэ
                 </p>
@@ -295,7 +298,7 @@ export default function SubjectPage() {
                   <button
                     onClick={handleGenerateCurriculum}
                     disabled={!!generating}
-                    className="flex items-center gap-2 bg-blue-600 text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
+                    className="flex items-center gap-2 bg-[var(--color-primary)] text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-[var(--color-primary-dark)] transition-colors disabled:opacity-50"
                   >
                     {generating === "curriculum" ? (
                       <>
@@ -308,7 +311,7 @@ export default function SubjectPage() {
                   <button
                     onClick={handleGenerateTopics}
                     disabled={!!generating}
-                    className="flex items-center gap-2 bg-purple-600 text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-purple-700 transition-colors disabled:opacity-50"
+                    className="flex items-center gap-2 bg-[var(--color-primary)] text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-[var(--color-primary-dark)] transition-colors disabled:opacity-50"
                   >
                     {generating === "topics" ? (
                       <>
@@ -322,7 +325,7 @@ export default function SubjectPage() {
                     <button
                       onClick={handleGenerateAllTests}
                       disabled={!!generating}
-                      className="flex items-center gap-2 bg-green-600 text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-green-700 transition-colors disabled:opacity-50"
+                      className="flex items-center gap-2 bg-[var(--color-accent)] text-black px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-[var(--color-accent-dark)] transition-colors disabled:opacity-50"
                     >
                       {generating === "all-tests" ? (
                         <>
@@ -336,22 +339,22 @@ export default function SubjectPage() {
                 </div>
                 {generating && (
                   <div className="mt-3 space-y-2">
-                    <div className="flex items-center gap-2 text-sm text-blue-600">
+                    <div className="flex items-center gap-2 text-sm text-[var(--color-primary)]">
                       <Spinner />
                       AI боловсруулж байна... Хэдэн секунд хүлээнэ үү
                     </div>
                     {genProgress && (
-                      <div className="bg-white rounded-lg border border-blue-200 p-3">
-                        <div className="flex items-center justify-between text-xs text-slate-600 mb-1">
+                      <div className="bg-[var(--color-surface)] rounded-lg border border-[var(--color-primary)]/20 p-3">
+                        <div className="flex items-center justify-between text-xs text-[var(--color-text-secondary)] mb-1">
                           <span>{genProgress.topic}</span>
                           {genProgress.total > 0 && (
                             <span className="font-medium">{genProgress.current}/{genProgress.total}</span>
                           )}
                         </div>
                         {genProgress.total > 0 && (
-                          <div className="w-full bg-slate-200 rounded-full h-2">
+                          <div className="w-full bg-[var(--color-surface-alt)] rounded-full h-2">
                             <div
-                              className="bg-blue-600 h-2 rounded-full transition-all duration-500"
+                              className="bg-[var(--color-primary)] h-2 rounded-full transition-all duration-500"
                               style={{ width: `${(genProgress.current / genProgress.total) * 100}%` }}
                             />
                           </div>
@@ -369,20 +372,20 @@ export default function SubjectPage() {
         {activeTab === "curriculum" && (
           <div>
             {files.length > 0 && curricula.length === 0 && (
-              <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-4">
+              <div className="bg-[var(--color-primary)]/10 border border-[var(--color-primary)]/20 rounded-xl p-4 mb-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-blue-700">
+                    <p className="text-sm font-medium text-[var(--color-primary)]">
                       PDF-ээс бүх сэдвээр хөтөлбөр үүсгэх үү?
                     </p>
-                    <p className="text-xs text-blue-500 mt-0.5">
+                    <p className="text-xs text-[var(--color-primary)] mt-0.5">
                       Номны бүх бүлэг/сэдвээр тус тусад нь нэгж хөтөлбөр үүсгэнэ
                     </p>
                   </div>
                   <button
                     onClick={handleGenerateCurriculum}
                     disabled={!!generating}
-                    className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
+                    className="flex items-center gap-2 bg-[var(--color-primary)] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--color-primary-dark)] disabled:opacity-50"
                   >
                     {generating === "curriculum" ? (
                       <>
@@ -394,17 +397,17 @@ export default function SubjectPage() {
                   </button>
                 </div>
                 {generating === "curriculum" && genProgress && (
-                  <div className="mt-3 bg-white rounded-lg border border-blue-200 p-3">
-                    <div className="flex items-center justify-between text-xs text-slate-600 mb-1">
+                  <div className="mt-3 bg-[var(--color-surface)] rounded-lg border border-[var(--color-primary)]/20 p-3">
+                    <div className="flex items-center justify-between text-xs text-[var(--color-text-secondary)] mb-1">
                       <span>{genProgress.topic}</span>
                       {genProgress.total > 0 && (
                         <span className="font-medium">{genProgress.current}/{genProgress.total}</span>
                       )}
                     </div>
                     {genProgress.total > 0 && (
-                      <div className="w-full bg-slate-200 rounded-full h-2">
+                      <div className="w-full bg-[var(--color-surface-alt)] rounded-full h-2">
                         <div
-                          className="bg-blue-600 h-2 rounded-full transition-all duration-500"
+                          className="bg-[var(--color-primary)] h-2 rounded-full transition-all duration-500"
                           style={{ width: `${(genProgress.current / genProgress.total) * 100}%` }}
                         />
                       </div>
@@ -425,14 +428,14 @@ export default function SubjectPage() {
         {activeTab === "topics" && (
           <div>
             {files.length > 0 && topics.length === 0 && (
-              <div className="bg-purple-50 border border-purple-200 rounded-xl p-4 mb-4 flex items-center justify-between">
-                <p className="text-sm text-purple-700">
+              <div className="bg-[var(--color-primary)]/10 border border-[var(--color-primary)]/20 rounded-xl p-4 mb-4 flex items-center justify-between">
+                <p className="text-sm text-[var(--color-primary)]">
                   PDF-ээс автоматаар сэдвүүд гаргах уу?
                 </p>
                 <button
                   onClick={handleGenerateTopics}
                   disabled={!!generating}
-                  className="flex items-center gap-2 bg-purple-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-purple-700 disabled:opacity-50"
+                  className="flex items-center gap-2 bg-[var(--color-primary)] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--color-primary-dark)] disabled:opacity-50"
                 >
                   {generating === "topics" ? (
                     <>
@@ -456,9 +459,9 @@ export default function SubjectPage() {
         {activeTab === "tests" && (
           <div>
             {topics.length > 0 && files.length > 0 && (
-              <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-4">
+              <div className="bg-[var(--color-accent)]/10 border border-[var(--color-accent)]/20 rounded-xl p-4 mb-4">
                 <div className="flex items-center justify-between mb-3">
-                  <p className="text-sm font-medium text-green-800">
+                  <p className="text-sm font-medium text-[var(--color-primary)]">
                     Сэдэв сонгоод тест үүсгэх
                   </p>
                 </div>
@@ -468,7 +471,7 @@ export default function SubjectPage() {
                       key={topic.id}
                       onClick={() => handleGenerateTest(topic)}
                       disabled={!!generating}
-                      className="flex items-center gap-1.5 bg-white border border-green-300 text-green-700 px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-green-50 transition-colors disabled:opacity-50"
+                      className="flex items-center gap-1.5 bg-[var(--color-surface)] border border-[var(--color-accent)]/30 text-[var(--color-primary)] px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-[var(--color-accent)]/10 transition-colors disabled:opacity-50"
                     >
                       {generating === `test-${topic.id}` ? (
                         <>
@@ -489,6 +492,11 @@ export default function SubjectPage() {
               onUpdate={reloadData}
             />
           </div>
+        )}
+
+        {/* Tab: Results (teacher only) */}
+        {activeTab === "results" && user?.role === "teacher" && (
+          <ResultsTab subjectId={subjectId} />
         )}
       </div>
     </div>

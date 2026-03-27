@@ -4,6 +4,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState, useRef, useCallback } from "react";
 import { subjects } from "@/shared/subjects";
 import { Test } from "@/shared/types";
+import { useAuth } from "@/frontend/lib/auth-context";
 import * as store from "@/frontend/lib/store";
 
 export default function TakeTestPage() {
@@ -12,6 +13,7 @@ export default function TakeTestPage() {
   const subjectId = params.id as string;
   const testId = params.testId as string;
 
+  const { user } = useAuth();
   const subject = subjects.find((s) => s.id === subjectId);
   const [test, setTest] = useState<Test | null>(null);
   const [answers, setAnswers] = useState<Map<string, number | string>>(
@@ -32,7 +34,36 @@ export default function TakeTestPage() {
   const handleSubmit = useCallback(() => {
     if (timerRef.current) clearInterval(timerRef.current);
     setSubmitted(true);
-  }, []);
+
+    // Save result to MongoDB (students only)
+    if (test && user && user.role === "student") {
+      let correct = 0;
+      let earned = 0;
+      let total = 0;
+      test.questions.forEach((q) => {
+        total += q.points;
+        if (q.type !== "open" && answers.get(q.id) === q.correctAnswer) {
+          correct++;
+          earned += q.points;
+        }
+      });
+      fetch("/api/test-results", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          testId: test.id,
+          subjectId,
+          topicName: test.topicName,
+          testName: test.name,
+          correctCount: correct,
+          totalQuestions: test.questions.filter((q) => q.type !== "open").length,
+          earnedPoints: earned,
+          totalPoints: total,
+          percentage: total > 0 ? Math.round((earned / total) * 100) : 0,
+        }),
+      }).catch(() => {});
+    }
+  }, [test, user, answers, subjectId]);
 
   useEffect(() => {
     if (!test || submitted) return;
@@ -62,7 +93,7 @@ export default function TakeTestPage() {
 
   if (!test || !subject) {
     return (
-      <div className="p-8 text-center text-slate-500">Тест олдсонгүй</div>
+      <div className="p-8 text-center text-[var(--color-text-secondary)]">Тест олдсонгүй</div>
     );
   }
 
@@ -86,31 +117,31 @@ export default function TakeTestPage() {
   const percentage = totalPoints > 0 ? Math.round((earnedPoints / totalPoints) * 100) : 0;
 
   return (
-    <div className="p-8">
+    <div className="p-4 sm:p-8">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 sm:mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-slate-800">{test.name}</h1>
-            <div className="flex items-center gap-3 mt-1">
-              <span className="text-sm text-slate-500">{subject.name}</span>
-              <span className="bg-blue-100 text-blue-700 text-xs font-medium px-2 py-0.5 rounded-full">
+            <h1 className="text-xl sm:text-2xl font-bold text-[var(--color-text)]">{test.name}</h1>
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-1">
+              <span className="text-xs sm:text-sm text-[var(--color-text-secondary)]">{subject.name}</span>
+              <span className="bg-[var(--color-primary)]/15 text-[var(--color-primary)] text-xs font-medium px-2 py-0.5 rounded-full">
                 {test.topicName}
               </span>
-              <span className="text-sm text-slate-400">
+              <span className="text-xs sm:text-sm text-[var(--color-text-muted)]">
                 {test.questions.length} асуулт
               </span>
             </div>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3 sm:gap-4">
             {!submitted && (
               <div
-                className={`text-2xl font-mono font-bold ${
+                className={`text-xl sm:text-2xl font-mono font-bold ${
                   timeLeft < 60
                     ? "text-red-600 animate-pulse"
                     : timeLeft < 300
                     ? "text-orange-500"
-                    : "text-slate-700"
+                    : "text-[var(--color-text)]"
                 }`}
               >
                 {formatTime(timeLeft)}
@@ -118,7 +149,7 @@ export default function TakeTestPage() {
             )}
             <button
               onClick={() => router.push(`/subjects/${subjectId}`)}
-              className="bg-slate-100 text-slate-600 px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-200"
+              className="bg-[var(--color-surface-alt)] text-[var(--color-text-secondary)] px-3 sm:px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--color-border)]"
             >
               Буцах
             </button>
@@ -128,27 +159,27 @@ export default function TakeTestPage() {
         {/* Results banner */}
         {submitted && (
           <div
-            className={`rounded-xl p-6 mb-6 ${
+            className={`rounded-xl p-4 sm:p-6 mb-4 sm:mb-6 ${
               percentage >= 80
-                ? "bg-green-50 border border-green-200"
+                ? "bg-green-500/10 border border-green-500/20"
                 : percentage >= 60
-                ? "bg-yellow-50 border border-yellow-200"
-                : "bg-red-50 border border-red-200"
+                ? "bg-yellow-500/10 border border-yellow-500/20"
+                : "bg-red-500/10 border border-red-500/20"
             }`}
           >
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-lg font-bold text-slate-800">
+                <h2 className="text-lg font-bold text-[var(--color-text)]">
                   Шалгалтын дүн
                 </h2>
-                <p className="text-sm text-slate-500 mt-1">
+                <p className="text-sm text-[var(--color-text-secondary)] mt-1">
                   {correctCount} / {test.questions.filter((q) => q.type !== "open").length} зөв
                   хариулт
                 </p>
               </div>
               <div className="text-right">
                 <div
-                  className={`text-4xl font-bold ${
+                  className={`text-3xl sm:text-4xl font-bold ${
                     percentage >= 80
                       ? "text-green-600"
                       : percentage >= 60
@@ -158,12 +189,12 @@ export default function TakeTestPage() {
                 >
                   {percentage}%
                 </div>
-                <p className="text-sm text-slate-500">
+                <p className="text-sm text-[var(--color-text-secondary)]">
                   {earnedPoints} / {totalPoints} оноо
                 </p>
               </div>
             </div>
-            <div className="w-full bg-slate-200 rounded-full h-3 mt-4">
+            <div className="w-full bg-[var(--color-surface-alt)] rounded-full h-3 mt-4">
               <div
                 className={`h-3 rounded-full transition-all ${
                   percentage >= 80
@@ -193,22 +224,22 @@ export default function TakeTestPage() {
             return (
               <div
                 key={q.id}
-                className={`bg-white rounded-xl border p-5 ${
+                className={`bg-[var(--color-surface)] rounded-xl border p-3 sm:p-5 ${
                   submitted
                     ? isCorrect
                       ? "border-green-300 bg-green-50/50"
                       : isWrong
                       ? "border-red-300 bg-red-50/50"
-                      : "border-slate-200"
-                    : "border-slate-200"
+                      : "border-[var(--color-border)]"
+                    : "border-[var(--color-border)]"
                 }`}
               >
                 <div className="flex items-start justify-between mb-3">
-                  <h3 className="text-sm font-semibold text-slate-800">
-                    <span className="text-blue-600 mr-2">#{idx + 1}</span>
+                  <h3 className="text-sm font-semibold text-[var(--color-text)]">
+                    <span className="text-[var(--color-primary)] mr-2">#{idx + 1}</span>
                     {q.text}
                   </h3>
-                  <span className="text-xs text-slate-400 whitespace-nowrap ml-4">
+                  <span className="text-xs text-[var(--color-text-muted)] whitespace-nowrap ml-4">
                     {q.points} оноо
                   </span>
                 </div>
@@ -219,7 +250,7 @@ export default function TakeTestPage() {
                       const isSelected = userAnswer === optIdx;
                       const isCorrectOption = q.correctAnswer === optIdx;
                       let optClass =
-                        "border border-slate-200 rounded-lg px-4 py-2.5 text-sm cursor-pointer transition-colors";
+                        "border border-[var(--color-border)] rounded-lg px-4 py-2.5 text-sm cursor-pointer transition-colors";
 
                       if (submitted) {
                         if (isCorrectOption) {
@@ -230,14 +261,14 @@ export default function TakeTestPage() {
                             "border-2 border-red-400 bg-red-50 rounded-lg px-4 py-2.5 text-sm text-red-700 line-through";
                         } else {
                           optClass =
-                            "border border-slate-100 rounded-lg px-4 py-2.5 text-sm text-slate-400";
+                            "border border-[var(--color-border-light)] rounded-lg px-4 py-2.5 text-sm text-[var(--color-text-muted)]";
                         }
                       } else {
                         if (isSelected) {
                           optClass =
-                            "border-2 border-blue-500 bg-blue-50 rounded-lg px-4 py-2.5 text-sm font-medium text-blue-800";
+                            "border-2 border-[var(--color-primary)] bg-[var(--color-primary)]/10 rounded-lg px-4 py-2.5 text-sm font-medium text-[var(--color-primary)]";
                         } else {
-                          optClass += " hover:border-blue-300 hover:bg-blue-50/50";
+                          optClass += " hover:border-[var(--color-primary)]/30 hover:bg-[var(--color-primary)]/5";
                         }
                       }
 
@@ -271,13 +302,13 @@ export default function TakeTestPage() {
                         } else if (isSelected) {
                           btnClass += " border-red-400 bg-red-50 text-red-700 border-2";
                         } else {
-                          btnClass += " border-slate-100 text-slate-400";
+                          btnClass += " border-[var(--color-border-light)] text-[var(--color-text-muted)]";
                         }
                       } else {
                         if (isSelected) {
-                          btnClass += " border-blue-500 bg-blue-50 text-blue-800 border-2";
+                          btnClass += " border-[var(--color-primary)] bg-[var(--color-primary)]/10 text-[var(--color-primary)] border-2";
                         } else {
-                          btnClass += " border-slate-200 hover:border-blue-300 hover:bg-blue-50/50";
+                          btnClass += " border-[var(--color-border)] hover:border-[var(--color-primary)]/30 hover:bg-[var(--color-primary)]/5";
                         }
                       }
 
@@ -300,7 +331,7 @@ export default function TakeTestPage() {
                     disabled={submitted}
                     value={(userAnswer as string) || ""}
                     onChange={(e) => setAnswer(q.id, e.target.value)}
-                    className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-50"
+                    className="w-full border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] disabled:bg-[var(--color-surface-alt)]"
                     placeholder="Хариултаа бичнэ үү..."
                   />
                 )}
@@ -325,7 +356,7 @@ export default function TakeTestPage() {
           <div className="mt-6 flex justify-center">
             <button
               onClick={handleSubmit}
-              className="bg-blue-600 text-white px-8 py-3 rounded-xl text-base font-semibold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-200"
+              className="bg-[var(--color-accent)] text-black px-8 py-3 rounded-xl text-base font-semibold hover:bg-[var(--color-accent-dark)] transition-colors shadow-lg shadow-[var(--color-accent)]/20"
             >
               Шалгах
             </button>

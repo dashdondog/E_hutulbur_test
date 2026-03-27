@@ -93,3 +93,26 @@ export interface Test {
   questions: Question[];
   createdAt: string;
 }
+
+export interface AuthUser {
+  userId: string;
+  name: string;
+  email: string;
+  role: "teacher" | "student";
+}
+
+export interface TestResult {
+  _id?: string;
+  userId: string;
+  userName: string;
+  testId: string;
+  subjectId: string;
+  topicName: string;
+  testName: string;
+  correctCount: number;
+  totalQuestions: number;
+  earnedPoints: number;
+  totalPoints: number;
+  percentage: number;
+  submittedAt: string;
+}

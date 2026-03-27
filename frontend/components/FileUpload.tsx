@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback } from "react";
+import { Upload, FileText, FileImage, File, Paperclip, Trash2 } from "lucide-react";
 
 interface UploadedFile {
   id: string;
@@ -81,11 +82,15 @@ export default function FileUpload({ subjectId, files, onFilesChange }: Props) {
   }
 
   function getFileIcon(mimeType: string, fileName: string) {
-    if (mimeType === "application/pdf" || fileName.endsWith(".pdf")) return "📕";
-    if (mimeType.startsWith("text/") || fileName.endsWith(".txt") || fileName.endsWith(".md")) return "📄";
-    if (mimeType.startsWith("image/")) return "🖼️";
-    if (fileName.endsWith(".doc") || fileName.endsWith(".docx")) return "📘";
-    return "📎";
+    if (mimeType === "application/pdf" || fileName.endsWith(".pdf"))
+      return <div className="w-9 h-9 rounded-lg bg-red-50 flex items-center justify-center"><FileText size={18} className="text-red-500" /></div>;
+    if (mimeType.startsWith("text/") || fileName.endsWith(".txt") || fileName.endsWith(".md"))
+      return <div className="w-9 h-9 rounded-lg bg-[var(--color-primary)]/10 flex items-center justify-center"><File size={18} className="text-[var(--color-primary)]" /></div>;
+    if (mimeType.startsWith("image/"))
+      return <div className="w-9 h-9 rounded-lg bg-[var(--color-primary)]/10 flex items-center justify-center"><FileImage size={18} className="text-[var(--color-primary)]" /></div>;
+    if (fileName.endsWith(".doc") || fileName.endsWith(".docx"))
+      return <div className="w-9 h-9 rounded-lg bg-[var(--color-primary)]/10 flex items-center justify-center"><FileText size={18} className="text-[var(--color-primary)]" /></div>;
+    return <div className="w-9 h-9 rounded-lg bg-[var(--color-surface-alt)] flex items-center justify-center"><Paperclip size={18} className="text-[var(--color-text-muted)]" /></div>;
   }
 
   return (
@@ -94,8 +99,8 @@ export default function FileUpload({ subjectId, files, onFilesChange }: Props) {
       <div
         className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors cursor-pointer ${
           dragOver
-            ? "border-blue-500 bg-blue-50"
-            : "border-slate-300 hover:border-blue-400 hover:bg-blue-50/50"
+            ? "border-[var(--color-primary)] bg-[var(--color-primary)]/10"
+            : "border-[var(--color-border)] hover:border-[var(--color-primary)] hover:bg-[var(--color-primary)]/5"
         }`}
         onDragOver={(e) => {
           e.preventDefault();
@@ -118,18 +123,20 @@ export default function FileUpload({ subjectId, files, onFilesChange }: Props) {
         />
         {uploading ? (
           <div>
-            <div className="animate-spin w-8 h-8 border-3 border-blue-500 border-t-transparent rounded-full mx-auto mb-3" />
-            <p className="text-sm text-blue-600 font-medium">
+            <div className="animate-spin w-8 h-8 border-3 border-[var(--color-primary)] border-t-transparent rounded-full mx-auto mb-3" />
+            <p className="text-sm text-[var(--color-primary)] font-medium">
               Файл байршуулж байна...
             </p>
           </div>
         ) : (
           <>
-            <div className="text-4xl mb-3">📂</div>
-            <p className="text-sm font-medium text-slate-700">
+            <div className="w-14 h-14 rounded-2xl bg-[var(--color-primary)]/10 flex items-center justify-center mx-auto mb-3">
+              <Upload size={28} className="text-[var(--color-primary)]" />
+            </div>
+            <p className="text-sm font-medium text-[var(--color-text)]">
               PDF, TXT файлаа энд чирж оруулна уу
             </p>
-            <p className="text-xs text-slate-400 mt-1">
+            <p className="text-xs text-[var(--color-text-muted)] mt-1">
               эсвэл энд дарж файл сонгоно уу
             </p>
           </>
@@ -142,26 +149,25 @@ export default function FileUpload({ subjectId, files, onFilesChange }: Props) {
           {files.map((f) => (
             <div
               key={f.id}
-              className="flex items-center justify-between bg-white rounded-lg border border-slate-200 px-4 py-3"
+              className="flex items-center justify-between bg-[var(--color-surface)] rounded-lg border border-[var(--color-border)] px-4 py-3"
             >
               <div className="flex items-center gap-3">
-                <span className="text-xl">
-                  {getFileIcon(f.mimeType, f.fileName)}
-                </span>
+                {getFileIcon(f.mimeType, f.fileName)}
                 <div>
-                  <p className="text-sm font-medium text-slate-800">
+                  <p className="text-sm font-medium text-[var(--color-text)]">
                     {f.fileName}
                   </p>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-[var(--color-text-muted)]">
                     {formatSize(f.fileSize)}
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => handleDelete(f.id)}
-                className="text-slate-400 hover:text-red-500 text-sm"
+                className="text-[var(--color-text-muted)] hover:text-red-500 p-1.5 rounded-lg hover:bg-red-50 transition-colors"
+                title="Устгах"
               >
-                Устгах
+                <Trash2 size={16} />
               </button>
             </div>
           ))}
