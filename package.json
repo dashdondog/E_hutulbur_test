@@ -14,7 +14,12 @@
     "@google/generative-ai": "^0.24.1",
     "@tailwindcss/postcss": "^4",
     "@types/bcryptjs": "^2.4.6",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
     "bcryptjs": "^3.0.3",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.1",
     "groq-sdk": "^1.1.1",
     "jose": "^6.2.2",
     "jspdf": "^4.2.1",
@@ -25,14 +30,7 @@
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "recharts": "^3.8.1",
-    "tailwindcss": "^4"
-  },
-  "devDependencies": {
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "eslint": "^9",
-    "eslint-config-next": "16.2.1",
+    "tailwindcss": "^4",
     "typescript": "^5"
   }
 }
