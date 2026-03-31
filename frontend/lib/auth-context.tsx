@@ -9,6 +9,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string, role: string) => Promise<void>;
   logout: () => Promise<void>;
+  updateTeacherSubjects: (subjects: string[]) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -17,6 +18,7 @@ const AuthContext = createContext<AuthContextType>({
   login: async () => {},
   register: async () => {},
   logout: async () => {},
+  updateTeacherSubjects: async () => {},
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -59,8 +61,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     window.location.href = "/login";
   }
 
+  async function updateTeacherSubjects(teacherSubjects: string[]) {
+    const res = await fetch("/api/auth/me", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ teacherSubjects }),
+    });
+    if (res.ok) {
+      setUser((prev) => prev ? { ...prev, teacherSubjects } : prev);
+    }
+  }
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout, updateTeacherSubjects }}>
       {children}
     </AuthContext.Provider>
   );

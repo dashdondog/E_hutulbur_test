@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useAuth } from "@/frontend/lib/auth-context";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { BookOpen } from "lucide-react";
+import { BookOpen, Eye, EyeOff } from "lucide-react";
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -13,6 +13,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -54,27 +55,36 @@ export default function LoginPage() {
           )}
 
           <div>
-            <label className="block text-sm font-medium text-[var(--color-text)] mb-1">Имэйл</label>
+            <label className="block text-sm font-medium text-[var(--color-text)] mb-1">Имэйл / Нэвтрэх код</label>
             <input
-              type="email"
+              type="text"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
               className="w-full border border-[var(--color-border)] bg-[var(--color-surface-alt)] text-[var(--color-text)] rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
-              placeholder="example@mail.com"
+              placeholder="example@mail.com эсвэл S-XXXXXX"
             />
           </div>
 
           <div>
             <label className="block text-sm font-medium text-[var(--color-text)] mb-1">Нууц үг</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="w-full border border-[var(--color-border)] bg-[var(--color-surface-alt)] text-[var(--color-text)] rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
-              placeholder="••••••"
-            />
+            <div className="relative">
+              <input
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                className="w-full border border-[var(--color-border)] bg-[var(--color-surface-alt)] text-[var(--color-text)] rounded-lg px-4 py-2.5 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+                placeholder="••••••"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
+              >
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
           </div>
 
           <button
@@ -87,9 +97,9 @@ export default function LoginPage() {
         </form>
 
         <p className="text-center text-sm text-[var(--color-text-secondary)] mt-6">
-          Бүртгэл байхгүй юу?{" "}
+          Багш бол{" "}
           <Link href="/register" className="text-[var(--color-primary)] font-medium hover:underline">
-            Бүртгүүлэх
+            энд бүртгүүлнэ үү
           </Link>
         </p>
       </div>

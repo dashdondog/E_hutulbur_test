@@ -49,9 +49,24 @@ export async function GET(req: NextRequest) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const filter: any = {};
 
-    // Students see only their own results
     if (user.role === "student") {
+      // Students see only their own results
       filter.userId = user.userId;
+    } else {
+      // Teachers see only results from students in their classrooms
+      const teacherClassrooms = await db
+        .collection("classrooms")
+        .find({ teacherId: user.userId })
+        .toArray();
+      const classroomIds = teacherClassrooms.map((c) => c._id.toString());
+      const members = classroomIds.length
+        ? await db.collection("classroomMembers").find({ classroomId: { $in: classroomIds } }).toArray()
+        : [];
+      const studentIds = [...new Set(members.map((m) => m.userId))];
+      if (studentIds.length === 0) {
+        return NextResponse.json({ results: [] });
+      }
+      filter.userId = { $in: studentIds };
     }
 
     if (testId) filter.testId = testId;

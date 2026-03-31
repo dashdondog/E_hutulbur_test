@@ -10,8 +10,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Бүх талбарыг бөглөнө үү" }, { status: 400 });
     }
 
-    if (!["teacher", "student"].includes(role)) {
-      return NextResponse.json({ error: "Буруу role" }, { status: 400 });
+    if (role !== "teacher") {
+      return NextResponse.json({ error: "Зөвхөн багш бүртгүүлэх боломжтой" }, { status: 403 });
     }
 
     if (password.length < 6) {

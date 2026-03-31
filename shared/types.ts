@@ -99,6 +99,37 @@ export interface AuthUser {
   name: string;
   email: string;
   role: "teacher" | "student";
+  teacherSubjects?: string[];
+}
+
+// Classroom system
+export interface Classroom {
+  _id?: string;
+  name: string;
+  teacherId: string;
+  teacherName: string;
+  joinCode: string;
+  createdAt: string;
+}
+
+export interface ClassroomMember {
+  _id?: string;
+  classroomId: string;
+  userId: string;
+  userName: string;
+  joinedAt: string;
+}
+
+export interface Assignment {
+  _id?: string;
+  classroomId: string;
+  testId: string;
+  subjectId: string;
+  testName: string;
+  topicName: string;
+  assignedBy: string;
+  deadline: string;
+  createdAt: string;
 }
 
 export interface TestResult {

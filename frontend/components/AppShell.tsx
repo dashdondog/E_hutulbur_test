@@ -36,9 +36,6 @@ function UserMenu() {
         </div>
         <div className="text-left hidden sm:block">
           <p className="text-sm font-medium text-[var(--color-text)] leading-tight">{user.name}</p>
-          <p className="text-xs text-[var(--color-text-muted)] leading-tight">
-            {user.role === "teacher" ? "Багш" : "Суралцагч"}
-          </p>
         </div>
         <svg className="w-4 h-4 text-[var(--color-text-muted)] hidden sm:block" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />

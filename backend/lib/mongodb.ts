@@ -19,5 +19,13 @@ export async function getDb(): Promise<Db> {
   await db.collection("users").createIndex({ email: 1 }, { unique: true });
   await db.collection("testResults").createIndex({ userId: 1, submittedAt: -1 });
 
+  // Classroom indexes
+  await db.collection("classrooms").createIndex({ teacherId: 1 });
+  await db.collection("classrooms").createIndex({ joinCode: 1 }, { unique: true });
+  await db.collection("classroomMembers").createIndex({ classroomId: 1 });
+  await db.collection("classroomMembers").createIndex({ userId: 1 });
+  await db.collection("classroomMembers").createIndex({ classroomId: 1, userId: 1 }, { unique: true });
+  await db.collection("assignments").createIndex({ classroomId: 1, deadline: -1 });
+
   return db;
 }

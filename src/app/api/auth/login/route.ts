@@ -13,12 +13,12 @@ export async function POST(req: NextRequest) {
     const db = await getDb();
     const user = await db.collection("users").findOne({ email });
     if (!user) {
-      return NextResponse.json({ error: "Имэйл эсвэл нууц үг буруу" }, { status: 401 });
+      return NextResponse.json({ error: "Нэвтрэх код эсвэл нууц үг буруу" }, { status: 401 });
     }
 
     const valid = await verifyPassword(password, user.passwordHash);
     if (!valid) {
-      return NextResponse.json({ error: "Имэйл эсвэл нууц үг буруу" }, { status: 401 });
+      return NextResponse.json({ error: "Нэвтрэх код эсвэл нууц үг буруу" }, { status: 401 });
     }
 
     const token = await signToken({
@@ -28,9 +28,15 @@ export async function POST(req: NextRequest) {
       email: user.email,
     });
 
-    const res = NextResponse.json({
-      user: { userId: user._id.toString(), name: user.name, email: user.email, role: user.role },
-    });
+    const userData = {
+      userId: user._id.toString(),
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      teacherSubjects: user.teacherSubjects ?? [],
+    };
+
+    const res = NextResponse.json({ user: userData });
     res.cookies.set("token", token, {
       httpOnly: true,
       path: "/",

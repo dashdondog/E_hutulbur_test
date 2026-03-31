@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useAuth } from "@/frontend/lib/auth-context";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { UserPlus, GraduationCap, BookMarked } from "lucide-react";
+import { BookMarked } from "lucide-react";
 
 export default function RegisterPage() {
   const { register } = useAuth();
@@ -12,7 +12,6 @@ export default function RegisterPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState<"teacher" | "student">("student");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -21,12 +20,8 @@ export default function RegisterPage() {
     setError("");
     setLoading(true);
     try {
-      await register(name, email, password, role);
-      if (role === "student") {
-        router.push("/student");
-      } else {
-        router.push("/");
-      }
+      await register(name, email, password, "teacher");
+      router.push("/");
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -39,10 +34,10 @@ export default function RegisterPage() {
       <div className="bg-[var(--color-surface)] rounded-2xl shadow-xl w-full max-w-md p-8 border border-[var(--color-border)]">
         <div className="text-center mb-8">
           <div className="w-16 h-16 bg-[var(--color-primary)]/15 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <UserPlus size={32} className="text-[var(--color-primary)]" />
+            <BookMarked size={32} className="text-[var(--color-primary)]" />
           </div>
-          <h1 className="text-2xl font-bold text-[var(--color-text)]">Бүртгүүлэх</h1>
-          <p className="text-sm text-[var(--color-text-secondary)] mt-1">Шинэ хэрэглэгч үүсгэх</p>
+          <h1 className="text-2xl font-bold text-[var(--color-text)]">Багшийн бүртгэл</h1>
+          <p className="text-sm text-[var(--color-text-secondary)] mt-1">Багш бүртгүүлэх</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -87,36 +82,6 @@ export default function RegisterPage() {
               className="w-full border border-[var(--color-border)] bg-[var(--color-surface-alt)] text-[var(--color-text)] rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
               placeholder="6+ тэмдэгт"
             />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-[var(--color-text)] mb-1">Төрөл</label>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => setRole("student")}
-                className={`py-3 rounded-lg text-sm font-medium border-2 transition-colors ${
-                  role === "student"
-                    ? "border-[var(--color-primary)] bg-[var(--color-primary)]/10 text-[var(--color-primary)]"
-                    : "border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-[var(--color-text-muted)]"
-                }`}
-              >
-                <GraduationCap size={16} className="inline-block mr-1.5 -mt-0.5" />
-                Суралцагч
-              </button>
-              <button
-                type="button"
-                onClick={() => setRole("teacher")}
-                className={`py-3 rounded-lg text-sm font-medium border-2 transition-colors ${
-                  role === "teacher"
-                    ? "border-[var(--color-accent)] bg-[var(--color-accent)]/10 text-[var(--color-accent)]"
-                    : "border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-[var(--color-text-muted)]"
-                }`}
-              >
-                <BookMarked size={16} className="inline-block mr-1.5 -mt-0.5" />
-                Багш
-              </button>
-            </div>
           </div>
 
           <button
