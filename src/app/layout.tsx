@@ -5,7 +5,7 @@ import { ThemeProvider } from "@/frontend/lib/theme-context";
 import AppShell from "@/frontend/components/AppShell";
 
 export const metadata: Metadata = {
-  title: "11-р ангийн хичээлийн систем",
+  title: "AI-EDU",
   description: "Хөтөлбөр бэлдэх & Тест бэлтгэх систем",
 };
 

@@ -8,10 +8,10 @@ export default function HomePage() {
       <div className="max-w-6xl mx-auto">
         <div className="mb-6 sm:mb-8">
           <h1 className="text-2xl sm:text-3xl font-bold text-[var(--color-text)]">
-            11-р ангийн хичээлийн систем
+            Хөтөлбөр бэлдэх & Сэдэв сэдвээр тест бэлтгэх
           </h1>
           <p className="text-[var(--color-text-secondary)] mt-2">
-            Хөтөлбөр бэлдэх & Сэдэв сэдвээр тест бэлтгэх
+            Сургалтын хөтөлбөр боловсруулах болон тест бэлтгэх үйл ажиллагааг дэмжих хиймэл оюунд суурилсан системийн хөгжүүлэлт
           </p>
         </div>
 

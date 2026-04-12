@@ -98,7 +98,7 @@ export interface AuthUser {
   userId: string;
   name: string;
   email: string;
-  role: "teacher" | "student";
+  role: "teacher" | "student" | "admin";
   teacherSubjects?: string[];
 }
 

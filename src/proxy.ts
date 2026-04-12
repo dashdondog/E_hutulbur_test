@@ -2,57 +2,84 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { jwtVerify } from "jose";
 
-const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || "default-secret-change-me");
+const JWT_SECRET = new TextEncoder().encode(
+  process.env.JWT_SECRET || "default-secret-change-me"
+);
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Allow auth pages and API routes
+  // Pass through
   if (
-    pathname.startsWith("/api/auth") ||
     pathname.startsWith("/_next") ||
-    pathname === "/favicon.ico" ||
-    pathname === "/login" ||
-    pathname === "/register"
+    pathname.startsWith("/favicon") ||
+    pathname.startsWith("/api/")
   ) {
     return NextResponse.next();
   }
 
   const token = request.cookies.get("token")?.value;
+  let role: string | null = null;
 
-  if (!token) {
+  if (token) {
+    try {
+      const { payload } = await jwtVerify(token, JWT_SECRET);
+      role = payload.role as string;
+    } catch {
+      // invalid token
+    }
+  }
+
+  // ── Unauthenticated ──────────────────────────────────────────
+  if (!role) {
+    if (pathname === "/login" || pathname === "/register") {
+      return NextResponse.next();
+    }
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  try {
-    const { payload } = await jwtVerify(token, JWT_SECRET);
-    const role = payload.role as string;
-
-    // Student can only access /student/* and /subjects/*/tests/* and /api/*
-    if (role === "student") {
-      if (
-        pathname.startsWith("/student") ||
-        pathname.match(/^\/subjects\/[^/]+\/tests\/[^/]+$/) ||
-        pathname.startsWith("/api/")
-      ) {
-        return NextResponse.next();
-      }
-      return NextResponse.redirect(new URL("/student", request.url));
-    }
-
-    // Teacher can access everything except /student
-    if (role === "teacher" && pathname.startsWith("/student")) {
-      return NextResponse.redirect(new URL("/", request.url));
-    }
-
-    return NextResponse.next();
-  } catch {
-    const res = NextResponse.redirect(new URL("/login", request.url));
-    res.cookies.set("token", "", { maxAge: 0 });
-    return res;
+  // ── Logged in → block auth pages ────────────────────────────
+  if (pathname === "/login") {
+    return NextResponse.redirect(new URL(homeFor(role), request.url));
   }
+
+  if (pathname === "/register") {
+    return NextResponse.redirect(new URL(homeFor(role), request.url));
+  }
+
+  // ── Role-based guards ────────────────────────────────────────
+
+  if (pathname.startsWith("/admin")) {
+    if (role !== "admin") {
+      return NextResponse.redirect(new URL(homeFor(role), request.url));
+    }
+    return NextResponse.next();
+  }
+
+  if (pathname.startsWith("/student")) {
+    if (role !== "student") {
+      return NextResponse.redirect(new URL(homeFor(role), request.url));
+    }
+    return NextResponse.next();
+  }
+
+  // Teacher-only pages (/, /classrooms, /subjects, /settings)
+  if (role === "student") {
+    return NextResponse.redirect(new URL("/student", request.url));
+  }
+  if (role === "admin") {
+    return NextResponse.redirect(new URL("/admin", request.url));
+  }
+
+  return NextResponse.next();
+}
+
+function homeFor(role: string) {
+  if (role === "student") return "/student";
+  if (role === "admin") return "/admin";
+  return "/";
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon\\.ico).*)"],
 };

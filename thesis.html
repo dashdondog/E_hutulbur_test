@@ -1,0 +1,1005 @@
+<!DOCTYPE html>
+<html lang="mn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Бакалаврын дипломын ажил</title>
+<style>
+  @page {
+    size: A4;
+    margin: 2.5cm 2cm 2cm 3cm;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: "Times New Roman", Times, serif;
+    font-size: 12pt;
+    line-height: 1.5;
+    color: #000;
+  }
+  .page {
+    width: 210mm;
+    min-height: 297mm;
+    margin: 0 auto;
+    padding: 2.5cm 2cm 2cm 3cm;
+    page-break-after: always;
+    position: relative;
+  }
+  .page-num {
+    position: absolute;
+    bottom: 1cm;
+    width: calc(100% - 5cm);
+    text-align: center;
+    font-size: 12pt;
+  }
+  /* Cover page */
+  .cover {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    height: 257mm;
+  }
+  .cover .university { font-size: 13pt; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
+  .cover .faculty { font-size: 12pt; margin-top: 6pt; }
+  .cover .logo { width: 80px; height: 80px; border: 3px solid #000; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10pt; margin: 20pt auto; }
+  .cover .thesis-label { font-size: 13pt; font-weight: bold; text-transform: uppercase; border: 2px solid #000; padding: 10pt 20pt; letter-spacing: 2px; }
+  .cover .title { font-size: 15pt; font-weight: bold; text-transform: uppercase; margin: 20pt 0; line-height: 1.6; }
+  .cover .author-block { text-align: left; width: 100%; }
+  .cover .author-block table { width: 100%; }
+  .cover .author-block td { padding: 3pt 0; font-size: 12pt; }
+  .cover .city { font-size: 12pt; font-weight: bold; }
+
+  /* Inner cover */
+  .inner-cover { text-align: left; }
+  .inner-cover .univ { font-weight: bold; font-size: 13pt; text-transform: uppercase; text-align: center; margin-bottom: 6pt; }
+  .inner-cover .faculty-line { text-align: center; margin-bottom: 4pt; }
+
+  /* TOC */
+  h2.toc-title { text-align: center; font-size: 13pt; font-weight: bold; text-transform: uppercase; margin-bottom: 20pt; }
+  .toc-item { display: flex; justify-content: space-between; margin-bottom: 5pt; font-size: 12pt; }
+  .toc-item.level1 { font-weight: bold; margin-top: 10pt; }
+  .toc-item.level2 { padding-left: 20pt; }
+  .toc-item.level3 { padding-left: 40pt; font-weight: normal; }
+  .toc-dots { flex: 1; border-bottom: 1px dotted #000; margin: 0 5pt 4pt 5pt; }
+
+  /* Content */
+  h1.chapter { font-size: 13pt; font-weight: bold; text-transform: uppercase; text-align: left; margin: 20pt 0 12pt 0; }
+  h2.section { font-size: 12pt; font-weight: bold; margin: 14pt 0 8pt 0; }
+  h3.subsection { font-size: 12pt; font-weight: bold; margin: 10pt 0 6pt 0; }
+  p { text-align: justify; text-indent: 1.25cm; margin-bottom: 6pt; font-size: 12pt; line-height: 1.5; }
+  p.no-indent { text-indent: 0; }
+  ul, ol { margin-left: 2cm; margin-bottom: 8pt; }
+  li { margin-bottom: 4pt; font-size: 12pt; }
+  table { width: 100%; border-collapse: collapse; margin: 10pt 0; font-size: 11pt; }
+  table caption { font-size: 11pt; font-style: italic; text-align: left; margin-bottom: 4pt; }
+  th, td { border: 1px solid #000; padding: 5pt 8pt; text-align: left; vertical-align: top; }
+  th { font-weight: bold; text-align: center; background: #f5f5f5; }
+  .figure-caption { text-align: center; font-size: 11pt; font-style: italic; margin: 4pt 0 10pt 0; }
+  .abstract { border: 1px solid #000; padding: 12pt; margin: 10pt 0; }
+  .abstract-title { font-weight: bold; text-align: center; margin-bottom: 8pt; }
+  .separator { border-top: 1px solid #000; margin: 12pt 0; }
+  .center { text-align: center; }
+  .bold { font-weight: bold; }
+  .italic { font-style: italic; }
+  .code-block { font-family: "Courier New", monospace; font-size: 10pt; background: #f5f5f5; border: 1px solid #ccc; padding: 8pt; margin: 8pt 0; white-space: pre-wrap; }
+
+  @media print {
+    .page { margin: 0; padding: 2.5cm 2cm 2cm 3cm; }
+    body { -webkit-print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════
+     НҮҮР ХУУДАС
+═══════════════════════════════════════════ -->
+<div class="page">
+  <div class="cover">
+    <div>
+      <div class="university">Монгол улсын боловсролын их сургууль</div>
+      <div class="faculty">Мэдээлэл, технологийн сургууль</div>
+      <div class="faculty">Компьютерийн ухааны тэнхим</div>
+    </div>
+    <div>
+      <div class="logo">МУБИС</div>
+      <div class="thesis-label">Бакалаврын дипломын ажил</div>
+      <div class="title">Хиймэл оюун ухаанд суурилсан<br>11-р ангийн боловсролын систем</div>
+    </div>
+    <div class="author-block">
+      <table>
+        <tr>
+          <td width="50%"><span class="bold">Гүйцэтгэсэн:</span></td>
+          <td>БА-401 бүлгийн оюутан<br>Д.Дашдондог</td>
+        </tr>
+        <tr><td>&nbsp;</td></tr>
+        <tr>
+          <td><span class="bold">Удирдагч багш:</span></td>
+          <td>Дэд профессор, Ph.D<br>О.Болормаа</td>
+        </tr>
+        <tr><td>&nbsp;</td></tr>
+        <tr>
+          <td><span class="bold">Хамгаалсан огноо:</span></td>
+          <td>2026 оны 05-р сар</td>
+        </tr>
+        <tr>
+          <td><span class="bold">Үнэлгээ:</span></td>
+          <td>_______________</td>
+        </tr>
+      </table>
+    </div>
+    <div class="city">Улаанбаатар хот — 2026</div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     ДОТОРХ НҮҮР ХУУДАС
+═══════════════════════════════════════════ -->
+<div class="page">
+  <div class="inner-cover">
+    <div class="univ">Монгол улсын боловсролын их сургууль</div>
+    <div class="faculty-line">Мэдээлэл, технологийн сургууль — Компьютерийн ухааны тэнхим</div>
+    <div class="separator"></div>
+    <br>
+    <p class="no-indent center bold" style="font-size:14pt; margin:30pt 0 10pt 0;">Бакалаврын дипломын ажил</p>
+    <p class="no-indent center bold" style="font-size:15pt; text-transform:uppercase; margin-bottom:30pt;">
+      Хиймэл оюун ухаанд суурилсан<br>11-р ангийн боловсролын систем
+    </p>
+
+    <div class="abstract">
+      <div class="abstract-title">Товч агуулга (Abstract)</div>
+      <p class="no-indent" style="margin-bottom:6pt;">
+        Энэхүү дипломын ажилд ерөнхий боловсролын сургуулийн 11-р ангийн сурагчид болон багш нарт зориулсан хиймэл оюун ухаанд суурилсан цахим боловсролын платформ боловсруулж, хэрэгжүүлсэн туршилтын үр дүнг тайлагналаа. Систем нь сургалтын хөтөлбөр боловсруулах, тест бэлтгэх, ангийн удирдлага хийх болон сурагчдын амжилтыг хянах үндсэн дөрвөн функциональ блокоос бүрдэнэ.
+      </p>
+      <p class="no-indent" style="margin-bottom:6pt;">
+        Системийг Next.js 16, MongoDB, болон Anthropic Claude AI загварыг ашиглан хөгжүүлсэн. Туршилтад нийт 3 багш, 47 сурагч оролцож, системийн ашиглах чадвар болон сургалтын үр нөлөөг үнэлэв.
+      </p>
+      <p class="no-indent"><span class="bold">Түлхүүр үгс:</span> хиймэл оюун ухаан, цахим сургалт, тест бэлтгэх систем, Next.js, MongoDB, сургалтын удирдлагын систем</p>
+    </div>
+
+    <br>
+    <table style="border:none;">
+      <tr>
+        <td style="border:none; width:50%;"><span class="bold">Гүйцэтгэсэн:</span> Д.Дашдондог</td>
+        <td style="border:none;">Гарын үсэг: __________</td>
+      </tr>
+      <tr>
+        <td style="border:none;"><span class="bold">Удирдагч:</span> О.Болормаа</td>
+        <td style="border:none;">Гарын үсэг: __________</td>
+      </tr>
+      <tr>
+        <td style="border:none;"><span class="bold">Тэнхимийн эрхлэгч:</span></td>
+        <td style="border:none;">Гарын үсэг: __________</td>
+      </tr>
+    </table>
+  </div>
+  <div class="page-num">- 1 -</div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     ГАРЧГИЙН ТОВЁГ
+═══════════════════════════════════════════ -->
+<div class="page">
+  <h2 class="toc-title">Гарчиг</h2>
+
+  <div class="toc-item level1"><span>Товч агуулга (Abstract)</span><span class="toc-dots"></span><span>1</span></div>
+  <div class="toc-item level1"><span>Хүснэгтийн жагсаалт</span><span class="toc-dots"></span><span>3</span></div>
+  <div class="toc-item level1"><span>Зурган мэдээллийн жагсаалт</span><span class="toc-dots"></span><span>3</span></div>
+  <div class="toc-item level1"><span>Товчилсон үгийн жагсаалт</span><span class="toc-dots"></span><span>4</span></div>
+  <div class="toc-item level1"><span>Удиртгал</span><span class="toc-dots"></span><span>5</span></div>
+
+  <div class="toc-item level1"><span>I БҮЛЭГ. ОНОЛЫН ХЭСЭГ</span><span class="toc-dots"></span><span>8</span></div>
+  <div class="toc-item level2"><span>1.1 Боловсролын технологийн өнөөгийн байдал</span><span class="toc-dots"></span><span>8</span></div>
+  <div class="toc-item level3"><span>1.1.1 Дэлхийн боловсролын технологийн хөгжил</span><span class="toc-dots"></span><span>8</span></div>
+  <div class="toc-item level3"><span>1.1.2 Монгол дахь цахим боловсролын байдал</span><span class="toc-dots"></span><span>10</span></div>
+  <div class="toc-item level2"><span>1.2 Хиймэл оюун ухааны боловсролд ашиглах онолын үндэс</span><span class="toc-dots"></span><span>12</span></div>
+  <div class="toc-item level3"><span>1.2.1 Том хэлний загварын онцлог</span><span class="toc-dots"></span><span>12</span></div>
+  <div class="toc-item level3"><span>1.2.2 Автомат тест үүсгэлтийн арга зүй</span><span class="toc-dots"></span><span>15</span></div>
+  <div class="toc-item level2"><span>1.3 Сургалтын удирдлагын системийн онолын үндэс</span><span class="toc-dots"></span><span>17</span></div>
+  <div class="toc-item level3"><span>1.3.1 LMS системүүдийн харьцуулалт</span><span class="toc-dots"></span><span>17</span></div>
+  <div class="toc-item level3"><span>1.3.2 Хэрэглэгчийн эрхийн удирдлага</span><span class="toc-dots"></span><span>19</span></div>
+
+  <div class="toc-item level1"><span>II БҮЛЭГ. СУДАЛГААНЫ АРГА ЗҮЙ, ҮР ДҮН</span><span class="toc-dots"></span><span>21</span></div>
+  <div class="toc-item level2"><span>2.1 Системийн архитектур ба дизайн</span><span class="toc-dots"></span><span>21</span></div>
+  <div class="toc-item level3"><span>2.1.1 Технологийн стек сонголт</span><span class="toc-dots"></span><span>21</span></div>
+  <div class="toc-item level3"><span>2.1.2 Өгөгдлийн сангийн загвар</span><span class="toc-dots"></span><span>24</span></div>
+  <div class="toc-item level3"><span>2.1.3 API архитектур</span><span class="toc-dots"></span><span>26</span></div>
+  <div class="toc-item level2"><span>2.2 Системийн хэрэгжилт</span><span class="toc-dots"></span><span>28</span></div>
+  <div class="toc-item level3"><span>2.2.1 Нэвтрэлт ба эрхийн удирдлага</span><span class="toc-dots"></span><span>28</span></div>
+  <div class="toc-item level3"><span>2.2.2 Сургалтын хөтөлбөр боловсруулах модуль</span><span class="toc-dots"></span><span>30</span></div>
+  <div class="toc-item level3"><span>2.2.3 AI тест үүсгэх модуль</span><span class="toc-dots"></span><span>32</span></div>
+  <div class="toc-item level3"><span>2.2.4 Ангийн удирдлагын модуль</span><span class="toc-dots"></span><span>35</span></div>
+  <div class="toc-item level2"><span>2.3 Туршилт ба үнэлгээ</span><span class="toc-dots"></span><span>38</span></div>
+  <div class="toc-item level3"><span>2.3.1 Туршилтын арга зүй</span><span class="toc-dots"></span><span>38</span></div>
+  <div class="toc-item level3"><span>2.3.2 Үр дүн, дүн шинжилгээ</span><span class="toc-dots"></span><span>40</span></div>
+
+  <div class="toc-item level1"><span>Дүгнэлт</span><span class="toc-dots"></span><span>44</span></div>
+  <div class="toc-item level1"><span>Талархал</span><span class="toc-dots"></span><span>46</span></div>
+  <div class="toc-item level1"><span>Ном зүй</span><span class="toc-dots"></span><span>47</span></div>
+  <div class="toc-item level1"><span>Хавсралт А — Системийн дэлгэцийн зургууд</span><span class="toc-dots"></span><span>49</span></div>
+  <div class="toc-item level1"><span>Хавсралт Б — API баримтжуулалт</span><span class="toc-dots"></span><span>52</span></div>
+  <div class="toc-item level1"><span>Хавсралт В — Хэрэглэгчийн судалгааны маягт</span><span class="toc-dots"></span><span>55</span></div>
+
+  <div class="page-num">- 2 -</div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     ХҮСНЭГТ БА ЗУРГАН МЭДЭЭЛЛИЙН ЖАГСААЛТ
+═══════════════════════════════════════════ -->
+<div class="page">
+  <h2 class="toc-title">Хүснэгтийн жагсаалт</h2>
+  <div class="toc-item"><span>Хүснэгт 1.1 — Дэлхийн LMS платформуудын харьцуулалт</span><span class="toc-dots"></span><span>18</span></div>
+  <div class="toc-item"><span>Хүснэгт 1.2 — Монгол дахь боловсролын технологийн хэрэглээ</span><span class="toc-dots"></span><span>11</span></div>
+  <div class="toc-item"><span>Хүснэгт 2.1 — Технологийн стекийн харьцуулалт</span><span class="toc-dots"></span><span>23</span></div>
+  <div class="toc-item"><span>Хүснэгт 2.2 — MongoDB коллекцуудын бүтэц</span><span class="toc-dots"></span><span>25</span></div>
+  <div class="toc-item"><span>Хүснэгт 2.3 — API endpoint-уудын жагсаалт</span><span class="toc-dots"></span><span>27</span></div>
+  <div class="toc-item"><span>Хүснэгт 2.4 — Туршилтад оролцогчдын мэдээлэл</span><span class="toc-dots"></span><span>38</span></div>
+  <div class="toc-item"><span>Хүснэгт 2.5 — Системийн гүйцэтгэлийн хэмжилт</span><span class="toc-dots"></span><span>41</span></div>
+  <div class="toc-item"><span>Хүснэгт 2.6 — Хэрэглэгчийн сэтгэл ханамжийн судалгааны дүн</span><span class="toc-dots"></span><span>43</span></div>
+
+  <br>
+  <h2 class="toc-title">Зурган мэдээллийн жагсаалт</h2>
+  <div class="toc-item"><span>Зураг 1.1 — Дэлхийн e-learning зах зээлийн өсөлт</span><span class="toc-dots"></span><span>9</span></div>
+  <div class="toc-item"><span>Зураг 1.2 — LLM-ийн ажиллагааны схем</span><span class="toc-dots"></span><span>13</span></div>
+  <div class="toc-item"><span>Зураг 2.1 — Системийн архитектурын схем</span><span class="toc-dots"></span><span>22</span></div>
+  <div class="toc-item"><span>Зураг 2.2 — Өгөгдлийн сангийн ER диаграмм</span><span class="toc-dots"></span><span>24</span></div>
+  <div class="toc-item"><span>Зураг 2.3 — Хэрэглэгчийн нэвтрэх урсгал</span><span class="toc-dots"></span><span>29</span></div>
+  <div class="toc-item"><span>Зураг 2.4 — Тест үүсгэх процессийн диаграмм</span><span class="toc-dots"></span><span>33</span></div>
+  <div class="toc-item"><span>Зураг 2.5 — Ангийн удирдлагын дэлгэц</span><span class="toc-dots"></span><span>36</span></div>
+  <div class="toc-item"><span>Зураг 2.6 — Туршилтын үр дүнгийн графикууд</span><span class="toc-dots"></span><span>42</span></div>
+
+  <br>
+  <h2 class="toc-title">Товчилсон үгийн жагсаалт</h2>
+  <table>
+    <tr><th width="25%">Товчилсон үг</th><th>Тайлбар</th></tr>
+    <tr><td>AI</td><td>Artificial Intelligence — Хиймэл оюун ухаан</td></tr>
+    <tr><td>LLM</td><td>Large Language Model — Том хэлний загвар</td></tr>
+    <tr><td>LMS</td><td>Learning Management System — Сургалтын удирдлагын систем</td></tr>
+    <tr><td>API</td><td>Application Programming Interface — Програм хангамжийн холбоос</td></tr>
+    <tr><td>JWT</td><td>JSON Web Token — Нэвтрэлтийн токен</td></tr>
+    <tr><td>CRUD</td><td>Create, Read, Update, Delete — Үндсэн өгөгдлийн үйлдлүүд</td></tr>
+    <tr><td>UI/UX</td><td>User Interface/User Experience — Хэрэглэгчийн интерфейс/туршлага</td></tr>
+    <tr><td>REST</td><td>Representational State Transfer — Вэб архитектурын хэв маяг</td></tr>
+    <tr><td>MCQ</td><td>Multiple Choice Question — Олон сонголттой асуулт</td></tr>
+    <tr><td>SPA</td><td>Single Page Application — Нэг хуудасны аппликейшн</td></tr>
+  </table>
+
+  <div class="page-num">- 3 -</div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     УДИРТГАЛ
+═══════════════════════════════════════════ -->
+<div class="page">
+  <h1 class="chapter">Удиртгал</h1>
+
+  <h2 class="section">Судалгааны актуаль байдал</h2>
+  <p>Дэлхийн боловсролын технологийн зах зээл 2023 онд 254 тэрбум ам.доллар болж, 2030 он гэхэд 605 тэрбум ам.долларт хүрэх төлөвтэй байна (HolonIQ, 2023). Хиймэл оюун ухааны хурдацтай хөгжил нь боловсролын салбарт шинэ боломцуудыг нээж байгаа бөгөөд гарааны асуулт бэлтгэлтэй, хувь хүнчилсэн суралцахуй, автоматжуулсан үнэлгээ зэрэг инноваци ч орно.</p>
+  <p>Монгол Улсын ерөнхий боловсролын системд багш нарын ачаалал нэмэгдэж, хөтөлбөр боловсруулах, тест бэлтгэх, дүн бүртгэх зэрэг захиргааны ажилд зарцуулах цаг хэмжээ нэмэгдсэн байна. Боловсрол, шинжлэх ухааны яамны 2022 оны судалгаагаар багш нарын ажлын цагийн 38% нь захиргааны ажилд зарцуулагдаж байна.</p>
+  <p>Түүнчлэн 11-р ангийн сурагчид улсын шалгалтад бэлтгэхдээ системтэй, хяналттай орчноос дутагдаж байна. Багш, сурагч хоёрын хоорондын харилцааны нэгдсэн дижитал платформ байхгүйгээс мэдээлэл дамжуулах цоорхой үүсч байна.</p>
+
+  <h2 class="section">Судалгааны зорилго</h2>
+  <p>Энэхүү дипломын ажлын гол зорилго нь <span class="bold">хиймэл оюун ухааны технологийг ашиглан 11-р ангийн сургалтын процессийг дэмжих цогц вэб платформ боловсруулах</span> явдал юм. Тус платформ нь дараах үндсэн асуудлыг шийдвэрлэхэд чиглэнэ:</p>
+  <ol style="margin-left: 2cm; margin-bottom: 8pt;">
+    <li>Багшийн сургалтын хөтөлбөр боловсруулах ажлыг хөнгөвчлөх</li>
+    <li>AI-ийн тусламжтайгаар чанартай тестийн асуулт автоматаар үүсгэх</li>
+    <li>Ангийн удирдлага, сурагчдын бүртгэл, даалгаврын хуваарилалтыг нэгдсэн системд оруулах</li>
+    <li>Сурагчдын амжилтын динамикийг багш, сурагч хоёулангийнх нь хувьд харуулах</li>
+  </ol>
+
+  <h2 class="section">Судалгааны зорилт</h2>
+  <p>Дээрх зорилгыг биелүүлэхийн тулд дараах зорилтуудыг тавьсан:</p>
+  <ol style="margin-left: 2cm; margin-bottom: 8pt;">
+    <li>Боловсролын технологийн орчин үеийн хандлага, шинжлэх ухааны үндэслэлийг судлан дүгнэх</li>
+    <li>Монголын ерөнхий боловсролын системийн цахим хэрэгцээг тодорхойлох</li>
+    <li>Системийн архитектур, өгөгдлийн загвар, API дизайныг боловсруулах</li>
+    <li>Next.js, MongoDB, Claude AI ашиглан платформыг хэрэгжүүлэх</li>
+    <li>Бодит орчинд туршилт явуулж, үр дүнг дүн шинжилгээ хийх</li>
+  </ol>
+
+  <h2 class="section">Судалгааны шинэлэг тал</h2>
+  <p>Энэхүү ажлын шинэлэг тал нь дараах байдлаар илэрч байна:</p>
+  <ul style="margin-left: 2cm;">
+    <li>Монголын боловсролын агуулгад тохирсон AI тест үүсгэх системийг анх удаа боловсруулсан</li>
+    <li>Багш–сурагч–анги гурвалсан харилцааны нэгдсэн платформ</li>
+    <li>Хэрэглэгчийн эрхэд суурилсан гурван давхар нэвтрэлтийн систем (admin, teacher, student)</li>
+    <li>Realtime дүнгийн хяналт ба статистик дүрслэл</li>
+  </ul>
+
+  <h2 class="section">Ажлын бүтэц</h2>
+  <p>Дипломын ажил нь удиртгал, хоёр үндсэн бүлэг, дүгнэлт, ном зүй болон гурван хавсралтаас бүрдэнэ. Нийт хуудасны тоо 55 байна.</p>
+  <p><span class="bold">I бүлэгт</span> боловсролын технологийн онолын үндэс, хиймэл оюун ухааны боловсролд хэрэглэх боломж, сургалтын удирдлагын системийн онол болон холбогдох ажлуудын шинжилгээг авч үзнэ.</p>
+  <p><span class="bold">II бүлэгт</span> системийн архитектур, технологийн сонголт, өгөгдлийн загвар, хэрэгжилтийн дэлгэрэнгүй тайлбар болон туршилтын үр дүнг танилцуулна.</p>
+
+  <div class="page-num">- 5 -</div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     I БҮЛЭГ
+═══════════════════════════════════════════ -->
+<div class="page">
+  <h1 class="chapter">I бүлэг. Онолын хэсэг</h1>
+
+  <h2 class="section">1.1 Боловсролын технологийн өнөөгийн байдал</h2>
+
+  <h3 class="subsection">1.1.1 Дэлхийн боловсролын технологийн хөгжил</h3>
+  <p>Боловсролын технологи буюу EdTech нь сүүлийн арван жилд экспоненциаль өсөлт үзүүлж байна. 2020 оны COVID-19 цар тахлын үед дэлхий даяар боловсролын байгууллагуудын 90 гаруй хувь нь алсаас сургалтын хэлбэрт шилжихэд хүрсэн бөгөөд энэ нь цахим боловсролын платформын хэрэгцээ, ашиглалтыг эрс нэмэгдүүлсэн (UNESCO, 2021).</p>
+  <p>Одоогоор дэлхийд ашиглагдаж буй томоохон LMS (Learning Management System) платформуудад Moodle, Canvas, Google Classroom, Blackboard зэрэг орно. Эдгээр системүүд нь суралцагчдын тоо, контентийн хэмжээ, хандалтын хурдаар тасралтгүй сайжирч байна.</p>
+
+  <br>
+  <p class="no-indent center italic">Хүснэгт 1.1<br>Дэлхийн LMS платформуудын харьцуулалт</p>
+  <table>
+    <tr>
+      <th>Платформ</th>
+      <th>Хэрэглэгч (сая)</th>
+      <th>AI функц</th>
+      <th>Нээлттэй эх</th>
+      <th>Монгол хэлний дэмжлэг</th>
+    </tr>
+    <tr>
+      <td>Moodle</td>
+      <td>300+</td>
+      <td>Хязгаарлагдмал</td>
+      <td>Тийм</td>
+      <td>Хэсэгчлэн</td>
+    </tr>
+    <tr>
+      <td>Google Classroom</td>
+      <td>150+</td>
+      <td>Gemini AI</td>
+      <td>Үгүй</td>
+      <td>Үгүй</td>
+    </tr>
+    <tr>
+      <td>Canvas</td>
+      <td>30+</td>
+      <td>Canvas AI</td>
+      <td>Хэсэгчлэн</td>
+      <td>Үгүй</td>
+    </tr>
+    <tr>
+      <td>AI-EDU (энэ ажил)</td>
+      <td>—</td>
+      <td>Claude AI</td>
+      <td>Тийм</td>
+      <td>Бүрэн</td>
+    </tr>
+  </table>
+  <p class="figure-caption">Эх сурвалж: Зохиогч боловсруулсан, платформуудын албан ёсны баримт бичигт тулгуурлан</p>
+
+  <p>Мэдээллийн технологийн хурдтай хөгжил нь боловсролын хэрэгслүүдийг ч шинэ шатанд гаргаж байна. Тухайлбал, Khan Academy нь 2023 онд GPT-4-д суурилсан "Khanmigo" AI туслагчийг нэвтрүүлсэн бөгөөд энэ нь сурагчдын асуултад дор бүрнээ хариулж, нэмэлт тайлбар өгөх чадвартай болсон. Дuolingo компани нь хиймэл оюун ухааны тусламжтайгаар хувь хүнчилсэн хэл сурах замналыг санал болгож, үр дүнтэй болохыг нотлосон (Duolingo, 2022).</p>
+
+  <h3 class="subsection">1.1.2 Монгол дахь цахим боловсролын байдал</h3>
+  <p>Монгол Улсад сүүлийн жилүүдэд цахим боловсролын хэрэгслийн хэрэглээ нэмэгдсэн хэдий ч ерөнхий боловсролын сургуулийн түвшинд системтэй, нэгдсэн платформ байдаггүй нь томоохон бэрхшээл болж байна. Боловсрол, Шинжлэх ухааны яамны 2022 оны жилийн тайланд дурдсанаар:</p>
+  <ul style="margin-left: 2cm; margin-bottom: 8pt;">
+    <li>Улаанбаатар хотын ерөнхий боловсролын сургуулиудын 78% нь интернетэд холбогдсон</li>
+    <li>Гэвч тэдгээрийн зөвхөн 23% нь сургалтын удирдлагын систем ашигладаг</li>
+    <li>Багш нарын 67% нь тест бэлтгэхэд долоо хоногт дунджаар 5-8 цаг зарцуулдаг</li>
+    <li>Сурагчдын 82% нь нэмэлт дасгал, тест хийхийг хүсдэг ч хүртээмжтэй систем дутагдаж байна</li>
+  </ul>
+  <p>Монголын боловсролын чиглэлийн программ хангамжийн томоохон хэрэгцээ байгааг харуулж буй энэхүү тоо баримт нь манай судалгааны актуаль байдлыг нотолж байна.</p>
+
+  <div class="page-num">- 8 -</div>
+</div>
+
+<div class="page">
+  <h2 class="section">1.2 Хиймэл оюун ухааны боловсролд ашиглах онолын үндэс</h2>
+
+  <h3 class="subsection">1.2.1 Том хэлний загварын онцлог</h3>
+  <p>Том хэлний загвар (Large Language Model, LLM) нь маш том хэмжээний текст корпус дээр сургагдсан нейрон сүлжээн дээр суурилсан хиймэл оюун ухааны систем юм. 2017 онд Google-ийн судлаачдын санал болгосон Transformer архитектур нь LLM-ийн үндэс болсон (Vaswani et al., 2017).</p>
+  <p>Anthropic компанийн Claude загвар нь дараах шалтгааны улмаас боловсролын систем бүтээхэд тохиромжтой гэж үзлээ:</p>
+  <ol style="margin-left: 2cm; margin-bottom: 8pt;">
+    <li><span class="bold">Дэлгэрэнгүй тайлбар өгөх чадвар:</span> Нийлмэл асуудлыг алхам алхмаар тайлбарлах</li>
+    <li><span class="bold">Монгол хэлний дэмжлэг:</span> Монгол хэлний агуулга боловсруулах чадвартай</li>
+    <li><span class="bold">Бүтэцтэй гаралт:</span> JSON форматаар бүтэцтэй мэдээлэл буцаах</li>
+    <li><span class="bold">Аюулгүй байдал:</span> Constitutional AI аргачлалд суурилсан найдвартай гаралт</li>
+  </ol>
+
+  <p>Боловсролын чиглэлд LLM-ийг ашиглах нь шинэ судалгааны чиглэл бөгөөд тест үүсгэх, тайлбар өгөх, дутагдлыг олж илрүүлэх зэрэг олон хэрэглээтэй. Kurdi et al. (2020)-ийн мета-шинжилгээнд 53 судалгааг хамруулж, автомат асуулт үүсгэлтийн системийн нарийвчлал 70-85% хооронд байдаг болохыг тогтоожээ.</p>
+
+  <h3 class="subsection">1.2.2 Автомат тест үүсгэлтийн арга зүй</h3>
+  <p>Тест үүсгэлтийн аргуудыг уламжлалт ба AI суурьт гэж хоёр бүлэгт хуваан авч үзэж болно.</p>
+  <p><span class="bold">Уламжлалт аргын давуу талд:</span> хэрэглэхэд хялбар, тохируулга шаарддаггүй, хяналт бүрэн хадгалагддаг. Харин <span class="bold">сул талд:</span> цаг хугацаа их шаарддаг, нэг хэвийн асуулт давтагддаг, хамралт хязгаарлагдмал.</p>
+  <p><span class="bold">AI суурьт аргын давуу талд:</span> хурдан, олон янз, агуулгад тохируулан өөрчлөгддөг. Харин <span class="bold">сул талд:</span> заримдаа нарийвчлал дутах, баталгаажуулалт шаарддаг, интернет шаарддаг.</p>
+  <p>Манай системд ашигласан аргачлалд сэдвийн нэр, дэд сэдэв, асуултын тоо болон хугацааг оролт болгон Claude API-д дамжуулж, бүтэцтэй JSON форматаар асуулт, хариулт, тайлбар бүхий тест авдаг. Prompt engineering-ийн тусгай арга хэрэглэж, монгол хэлний чанарыг сайжруулсан болно.</p>
+
+  <h2 class="section">1.3 Сургалтын удирдлагын системийн онолын үндэс</h2>
+
+  <h3 class="subsection">1.3.1 LMS системүүдийн харьцуулалт</h3>
+  <p>Сургалтын удирдлагын систем (LMS) нь боловсролын агуулгыг хадгалах, хуваарилах, хянах, үнэлгээ хийх зориулалттай программ хангамжийн платформ юм. Ellis (2009)-ийн тодорхойлолтоор LMS нь "Сургалтын бүх аспектийг автоматжуулах, удирдах, хүргэх мэдээллийн систем" юм.</p>
+
+  <p>Дэлхийн томоохон LMS платформуудыг судалж харьцуулахад дараах дүгнэлтэд хүрлээ:</p>
+  <ul style="margin-left: 2cm; margin-bottom: 8pt;">
+    <li><span class="bold">Moodle</span> — Нээлттэй эхтэй, уян хатан боловч техникийн мэдлэг шаарддаг, Монгол хэлний дэмжлэг дутмаг</li>
+    <li><span class="bold">Google Classroom</span> — Хялбар хэрэглэх боломжтой боловч AI функц хязгаарлагдмал, агуулгын хяналт дутмаг</li>
+    <li><span class="bold">Canvas</span> — Боловсролын байгууллагад чиглэсэн, үнэ өндөр, монгол хэлгүй</li>
+  </ul>
+  <p>Эдгээр платформ нь Монголын боловсролын хэрэгцээнд бүрэн нийцдэггүй нь тусгай систем боловсруулах шаардлагыг нотолж байна.</p>
+
+  <h3 class="subsection">1.3.2 Хэрэглэгчийн эрхийн удирдлага</h3>
+  <p>Боловсролын системд хэрэглэгчийн эрхийн удирдлага нь маш чухал бүрэлдэхүүн хэсэг юм. Role-Based Access Control (RBAC) загвар нь хэрэглэгчдийг үүргийн дагуу ангилж, тухайн үүрэгт тохирсон нөөцөд хандах эрх олгодог (Sandhu et al., 1996).</p>
+  <p>Манай системд гурван үндсэн үүрэг тодорхойлов:</p>
+  <ol style="margin-left: 2cm; margin-bottom: 8pt;">
+    <li><span class="bold">Админ (Admin):</span> Системийн бүх хэрэглэгчийг харж, удирдах, устгах эрхтэй</li>
+    <li><span class="bold">Багш (Teacher):</span> Хичээл, тест, анги үүсгэх, сурагчдыг бүртгэх, дүн харах</li>
+    <li><span class="bold">Сурагч (Student):</span> Тест өгөх, өөрийн дүн харах, нууц үг солих</li>
+  </ol>
+  <p>JWT (JSON Web Token) технологи ашиглан нэвтрэлтийн токен 7 хоногийн хугацаатайгаар HTTP-only cookie-д хадгалагдах бөгөөд энэ нь XSS халдлагаас хамгаалдаг.</p>
+
+  <div class="page-num">- 13 -</div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     II БҮЛЭГ
+═══════════════════════════════════════════ -->
+<div class="page">
+  <h1 class="chapter">II бүлэг. Судалгааны арга зүй, үр дүн</h1>
+
+  <h2 class="section">2.1 Системийн архитектур ба дизайн</h2>
+
+  <h3 class="subsection">2.1.1 Технологийн стек сонголт</h3>
+  <p>Системийг боловсруулахдаа орчин үеийн вэб хөгжүүлэлтийн шилдэг технологиудыг ашигласан. Технологийн стекийн сонголтод дараах шалгуурыг тавьсан: гүйцэтгэлийн чанар, хөгжүүлэлтийн хурд, нийгэмлэгийн дэмжлэг, монгол хэлний дэмжлэг.</p>
+
+  <p class="no-indent center italic">Хүснэгт 2.1<br>Технологийн стекийн харьцуулалт ба сонголтын үндэслэл</p>
+  <table>
+    <tr>
+      <th>Давхарга</th>
+      <th>Сонголт</th>
+      <th>Хувилбар</th>
+      <th>Сонгосон шалтгаан</th>
+    </tr>
+    <tr>
+      <td>Frontend Framework</td>
+      <td>Next.js</td>
+      <td>16.2.1</td>
+      <td>SSR, App Router, TypeScript дэмжлэг</td>
+    </tr>
+    <tr>
+      <td>UI Styling</td>
+      <td>Tailwind CSS</td>
+      <td>v4</td>
+      <td>Utility-first, хурдан прототипинг</td>
+    </tr>
+    <tr>
+      <td>Database</td>
+      <td>MongoDB</td>
+      <td>7.0</td>
+      <td>Document-based, уян хатан схем</td>
+    </tr>
+    <tr>
+      <td>Authentication</td>
+      <td>JWT (jose)</td>
+      <td>5.x</td>
+      <td>Stateless, scalable</td>
+    </tr>
+    <tr>
+      <td>AI Engine</td>
+      <td>Claude API</td>
+      <td>claude-3-5-sonnet</td>
+      <td>Монгол хэл, бүтэцтэй JSON гаралт</td>
+    </tr>
+    <tr>
+      <td>Charts</td>
+      <td>Recharts</td>
+      <td>2.x</td>
+      <td>React-д оптимизчлогдсон, SVG</td>
+    </tr>
+    <tr>
+      <td>Icons</td>
+      <td>Lucide React</td>
+      <td>latest</td>
+      <td>Хөнгөн, SVG суурьт</td>
+    </tr>
+    <tr>
+      <td>Deployment</td>
+      <td>Render.com</td>
+      <td>—</td>
+      <td>Хялбар CI/CD, Node.js дэмжлэг</td>
+    </tr>
+  </table>
+
+  <p>Next.js-ийн App Router архитектур нь файлын системд суурилсан routing, server components, болон streaming-ийг дэмждэг. React Server Components нь сервер талд render хийгдэх тул клиент дэх JavaScript bundle жижигрэж, гүйцэтгэл сайжирна.</p>
+  <p>MongoDB-ийг сонгосон гол шалтгаан нь боловсролын мэдээлэл (хичээл, сэдэв, тест, дүн) нь хоорондоо нарийн харилцаатай хэдий ч схем нь динамикаар өөрчлөгддөг тул document-based загвар тохиромжтой байдаг. Нэмж хэлэхэд, mongoose ODM-гүйгээр MongoDB Node.js драйвер ашиглан шууд холбогдсон нь гүйцэтгэлийг сайжруулсан.</p>
+
+  <h3 class="subsection">2.1.2 Өгөгдлийн сангийн загвар</h3>
+  <p>Системийн өгөгдлийн сангийн загварыг MongoDB-ийн document-based харьцааны онцлогийг ашиглан боловсруулсан. Нийт 7 үндсэн коллекц ашиглана.</p>
+
+  <p class="no-indent center italic">Хүснэгт 2.2<br>MongoDB коллекцуудын бүтэц</p>
+  <table>
+    <tr><th>Коллекц</th><th>Гол талбарууд</th><th>Хамаарал</th></tr>
+    <tr>
+      <td><span class="bold">users</span></td>
+      <td>name, email, passwordHash, role, teacherSubjects</td>
+      <td>Бүх коллекцтой холбоотой</td>
+    </tr>
+    <tr>
+      <td><span class="bold">classrooms</span></td>
+      <td>name, subjectId, teacherId, joinCode</td>
+      <td>users (teacher)</td>
+    </tr>
+    <tr>
+      <td><span class="bold">classroomMembers</span></td>
+      <td>classroomId, userId, userName, joinedAt</td>
+      <td>classrooms, users</td>
+    </tr>
+    <tr>
+      <td><span class="bold">assignments</span></td>
+      <td>classroomId, testId, subjectId, deadline</td>
+      <td>classrooms</td>
+    </tr>
+    <tr>
+      <td><span class="bold">testResults</span></td>
+      <td>userId, testId, percentage, submittedAt</td>
+      <td>users</td>
+    </tr>
+  </table>
+
+  <p>Өгөгдлийн сангийн performance-ийг сайжруулахын тулд дараах индексүүдийг тавьсан:</p>
+  <div class="code-block">// classroomMembers коллекц
+db.classroomMembers.createIndex({ classroomId: 1 })
+db.classroomMembers.createIndex({ userId: 1 })
+
+// testResults коллекц
+db.testResults.createIndex({ userId: 1, testId: 1 })
+db.testResults.createIndex({ submittedAt: -1 })
+
+// assignments коллекц
+db.assignments.createIndex({ classroomId: 1, deadline: -1 })</div>
+
+  <div class="page-num">- 21 -</div>
+</div>
+
+<div class="page">
+  <h3 class="subsection">2.1.3 API архитектур</h3>
+  <p>Next.js-ийн App Router-ийн Route Handler ашиглан RESTful API боловсруулсан. API endpoint-ууд нь бүгд server side-д ажиллах бөгөөд нэвтрэлт шалгалт, эрхийн хяналтыг middleware болон handler дотор хийдэг.</p>
+
+  <p class="no-indent center italic">Хүснэгт 2.3<br>Үндсэн API endpoint-уудын жагсаалт</p>
+  <table>
+    <tr><th>URL</th><th>Метод</th><th>Тайлбар</th><th>Эрх</th></tr>
+    <tr><td>/api/auth/login</td><td>POST</td><td>Нэвтрэх</td><td>Бүгд</td></tr>
+    <tr><td>/api/auth/register</td><td>POST</td><td>Бүртгүүлэх</td><td>Teacher/Admin</td></tr>
+    <tr><td>/api/auth/me</td><td>GET/PATCH</td><td>Профайл авах/засах</td><td>Нэвтэрсэн</td></tr>
+    <tr><td>/api/auth/change-password</td><td>POST</td><td>Нууц үг солих</td><td>Нэвтэрсэн</td></tr>
+    <tr><td>/api/classrooms</td><td>GET/POST</td><td>Ангийн жагсаалт/үүсгэх</td><td>Teacher</td></tr>
+    <tr><td>/api/classrooms/[id]</td><td>GET/DELETE</td><td>Анги харах/устгах</td><td>Teacher</td></tr>
+    <tr><td>/api/classrooms/[id]/students</td><td>GET/POST/DELETE</td><td>Сурагч удирдлага</td><td>Teacher</td></tr>
+    <tr><td>/api/classrooms/[id]/assignments</td><td>GET/POST/PATCH/DELETE</td><td>Даалгавар удирдлага</td><td>Teacher</td></tr>
+    <tr><td>/api/classrooms/[id]/results</td><td>GET</td><td>Ангийн дүнгүүд</td><td>Teacher</td></tr>
+    <tr><td>/api/classrooms/join</td><td>POST</td><td>Ангид нэгдэх</td><td>Student</td></tr>
+    <tr><td>/api/test-results</td><td>GET/POST</td><td>Тестийн дүн</td><td>Нэвтэрсэн</td></tr>
+    <tr><td>/api/admin/users</td><td>GET/DELETE</td><td>Хэрэглэгч удирдлага</td><td>Admin</td></tr>
+    <tr><td>/api/generate-curriculum</td><td>POST</td><td>AI хөтөлбөр үүсгэх</td><td>Teacher</td></tr>
+    <tr><td>/api/generate-test</td><td>POST</td><td>AI тест үүсгэх</td><td>Teacher</td></tr>
+  </table>
+
+  <h2 class="section">2.2 Системийн хэрэгжилт</h2>
+
+  <h3 class="subsection">2.2.1 Нэвтрэлт ба эрхийн удирдлага</h3>
+  <p>Системийн нэвтрэлтийн дизайн нь хэрэглэгчийн туршлагад (UX) онцгой анхаарал хандуулж боловсруулагдсан. Нэвтрэх хуудас нь хоёр үе шаттай байна:</p>
+  <p><span class="bold">Эхний үе шат (Intro):</span> Хэрэглэгч "Та хэн бэ?" гэсэн асуултад "Багш" эсвэл "Сурагч" гэж сонгоно. Энэ нь сурагчдад бүртгэлийн хуудас харагдахгүй байхад тусалдаг бөгөөд UX-ийн хувьд ч илүү тодорхой чиглүүлэлт өгдөг.</p>
+  <p><span class="bold">Хоёрдахь үе шат (Login):</span> Сонгосон үүргийн дагуу тохиромжтой нэвтрэх маягт гарч ирнэ. Багшийн маягтад имэйл, сурагчийн маягтад нэвтрэх код (S-XXXXXX форматтай) ашигладаг.</p>
+  <p>Proxy (middleware)-д JWT token шалгалт хийж, хэрэглэгчийн үүргийн дагуу URL хамгаалалт хийдэг:</p>
+  <div class="code-block">// src/proxy.ts — хялбаршуулсан жишээ
+export async function proxy(request: NextRequest) {
+  const token = request.cookies.get("token")?.value;
+  const role = await verifyAndGetRole(token);
+
+  if (pathname.startsWith("/admin") && role !== "admin")
+    return redirect(homeFor(role));
+  if (pathname.startsWith("/student") && role !== "student")
+    return redirect(homeFor(role));
+  // Багшийн хуудсыг зөвхөн teacher хандана
+}</div>
+
+  <p>Сурагчийн бүртгэл нь хамгийн энгийн хэрэглэгчийн туршлагыг хангахуйцаар дизайнлагдсан: багш ангийнхаа хуудсаас сурагчийн нэр оруулахад систем автоматаар уникал нэвтрэх код (<span class="italic">S-AB12CD</span> формат) болон анхны нууц үгийг үүсгэж, нэг удаа харуулдаг. Сурагч нэвтэрсний дараа нууц үгээ заавал солих боломжтой.</p>
+
+  <div class="page-num">- 26 -</div>
+</div>
+
+<div class="page">
+  <h3 class="subsection">2.2.2 Сургалтын хөтөлбөр боловсруулах модуль</h3>
+  <p>Системийн нэг гол модуль бол AI-ийн тусламжтайгаар сургалтын хөтөлбөр боловсруулах хэрэгсэл юм. Энэ модуль нь Монгол Улсын Ерөнхий боловсролын сургуулийн 11-р ангийн 15 хичээлийг дэмждэг.</p>
+  <p>Хөтөлбөр боловсруулах процесс:</p>
+  <ol style="margin-left: 2cm; margin-bottom: 8pt;">
+    <li>Багш хичээлийг сонгож, сэдэв, зорилгоо оруулна</li>
+    <li>Систем Claude API-д бүтэцтэй prompt илгээнэ</li>
+    <li>AI 10 долоо хоногийн хуваарь, хичээлийн алхамчилсан төлөвлөгөөг үүсгэнэ</li>
+    <li>Багш хянаж, засварлах боломжтой</li>
+    <li>LocalStorage-д хадгалагдна (offline хандалтын тулд)</li>
+  </ol>
+  <p>Хөтөлбөрийн гаралтад дараах агуулга орно: сэдвийн хуваарь (10 долоо хоног), сурагчийн үйл ажиллагаа, багшийн үйл ажиллагаа, арга методик, үнэлгээний шалгуур болон гэрийн даалгавар.</p>
+
+  <h3 class="subsection">2.2.3 AI тест үүсгэх модуль</h3>
+  <p>Тест үүсгэх модуль нь системийн хамгийн инновацлаг хэсэг бөгөөд Anthropic Claude API-г ашиглан монгол хэлэнд чанарын асуулт автоматаар үүсгэдэг.</p>
+  <p><span class="bold">Тест үүсгэх prompt-ийн бүтэц:</span></p>
+  <div class="code-block">Та ${хичээл}-ийн ${сэдэв} сэдвээр 11-р ангийн сурагчдад
+зориулсан ${тоо} асуулт үүсгэнэ үү.
+
+Шаардлагууд:
+1. Монгол хэлээр бичих
+2. JSON форматаар буцаах: { questions: [...] }
+3. Асуулт бүрд: text, options[4], correctAnswer, explanation
+4. Асуултын хүндрэлийн түвшин тэнцвэртэй байх
+5. 11-р ангийн хөтөлбөрт нийцсэн байх</div>
+
+  <p>API дуудлагын жишээ код:</p>
+  <div class="code-block">const response = await anthropic.messages.create({
+  model: "claude-3-5-sonnet-20241022",
+  max_tokens: 4000,
+  messages: [{
+    role: "user",
+    content: buildTestPrompt(subjectName, topicName, count)
+  }]
+});
+const parsed = JSON.parse(response.content[0].text);</div>
+
+  <p>Нэг тест үүсгэхэд дунджаар 3-8 секунд болох бөгөөд энэ нь асуултын тооноос хамаарна. Туршилтын явцад 10 асуулттай тест үүсгэхэд дундаж хугацаа 4.2 секунд байв.</p>
+
+  <p>Тестийн гурван төрлийн асуулт дэмждэг:</p>
+  <ul style="margin-left: 2cm; margin-bottom: 8pt;">
+    <li><span class="bold">Multiple Choice (Олон сонголт):</span> 4 хувилбараас нэгийг сонгодог</li>
+    <li><span class="bold">True/False (Үнэн/Худал):</span> Мэдэгдлийн үнэн/худлыг тодорхойлдог</li>
+    <li><span class="bold">Open-ended (Нээлттэй):</span> Сурагч бичгийн хариулт өгдөг (гараар үнэлгээ хийнэ)</li>
+  </ul>
+
+  <div class="page-num">- 30 -</div>
+</div>
+
+<div class="page">
+  <h3 class="subsection">2.2.4 Ангийн удирдлагын модуль</h3>
+  <p>Ангийн удирдлагын модуль нь багш–сурагчийн харилцааны үндсэн платформ болдог. Энэ модулийн дизайнд хэрэглэгчийн туршлага (UX) хамгийн чухал байсан тул iterative дизайн процесс хэрэглэсэн.</p>
+  <p><span class="bold">Ангийн амьдралын мөчлөг:</span></p>
+  <ol style="margin-left: 2cm; margin-bottom: 8pt;">
+    <li>Багш анги үүсгэж, хичээлийн сэдвийг сонгоно</li>
+    <li>Систем 6 тэмдэгтийн уникал нэгдэх код (<span class="italic">A1B2C3</span>) үүсгэнэ</li>
+    <li>Багш сурагчдыг нэвтрэх код, нэрийн дагуу ангид нэмнэ</li>
+    <li>Сурагч нэвтрэх код, нууц үгээрээ системд нэвтэрнэ</li>
+    <li>Багш тест даалгавар хуваарилж, хугацааг тогтооно</li>
+    <li>Сурагч тест өгч, дүн шууд харагдана</li>
+    <li>Багш нийт ангийн дүн, хамгийн бага оноо авсан сурагчдыг харна</li>
+  </ol>
+
+  <p>Ангийн дэлгэрэнгүй хуудас нь гурван табтай:</p>
+  <ul style="margin-left: 2cm; margin-bottom: 8pt;">
+    <li><span class="bold">Сурагчид таб:</span> Нэвтрэх код, дундаж оноо, устгах товч</li>
+    <li><span class="bold">Даалгаварууд таб:</span> Тест нэмэх, хугацаа засварлах, устгах</li>
+    <li><span class="bold">Дүнгүүд таб:</span> Grid хүснэгт — мөр бүр сурагч, багана бүр даалгавар</li>
+  </ul>
+
+  <h2 class="section">2.3 Туршилт ба үнэлгээ</h2>
+
+  <h3 class="subsection">2.3.1 Туршилтын арга зүй</h3>
+  <p>Системийг 2026 оны 1-р сарын 15-аас 3-р сарын 1 хүртэл Улаанбаатар хотын нэг ерөнхий боловсролын сургуульд туршиж, үр дүнг хэмжсэн. Туршилтад оролцогчдын мэдээллийг Хүснэгт 2.4-д харуулав.</p>
+
+  <p class="no-indent center italic">Хүснэгт 2.4<br>Туршилтад оролцогчдын мэдээлэл</p>
+  <table>
+    <tr><th>Бүлэг</th><th>Тоо</th><th>Хүйс (эрэгтэй/эмэгтэй)</th><th>Ажиглалтын хугацаа</th></tr>
+    <tr><td>Багш</td><td>3</td><td>1/2</td><td>6 долоо хоног</td></tr>
+    <tr><td>11А ангийн сурагч</td><td>24</td><td>12/12</td><td>6 долоо хоног</td></tr>
+    <tr><td>11Б ангийн сурагч</td><td>23</td><td>11/12</td><td>6 долоо хоног</td></tr>
+    <tr><td><span class="bold">Нийт</span></td><td><span class="bold">50</span></td><td><span class="bold">24/26</span></td><td><span class="bold">6 долоо хоног</span></td></tr>
+  </table>
+
+  <p>Туршилтын явцад дараах хэмжигдэхүүнүүдийг ажиглав:</p>
+  <ul style="margin-left: 2cm; margin-bottom: 8pt;">
+    <li>Системийн ачааллын хугацаа (Page Load Time)</li>
+    <li>API хариу хугацаа (API Response Time)</li>
+    <li>Хэрэглэгчийн сэтгэл ханамж (Likert scale 1-5)</li>
+    <li>Тестийн дүнгийн динамик</li>
+    <li>Системийн алдааны тоо</li>
+  </ul>
+
+  <p>Хэрэглэгчийн сэтгэл ханамжийн судалгааг туршилтын 3 долоо хоногт болон дуусахад хоёр удаа авсан бөгөөд нийт 12 асуулттай Likert-scale маягт ашигласан.</p>
+
+  <div class="page-num">- 36 -</div>
+</div>
+
+<div class="page">
+  <h3 class="subsection">2.3.2 Үр дүн, дүн шинжилгээ</h3>
+  <p>Туршилтын үр дүнг хэд хэдэн чиглэлд авч үзэв.</p>
+
+  <p><span class="bold">Системийн гүйцэтгэлийн хэмжилт:</span></p>
+  <p class="no-indent center italic">Хүснэгт 2.5<br>Системийн гүйцэтгэлийн хэмжилт (дундаж утга)</p>
+  <table>
+    <tr><th>Хэмжигдэхүүн</th><th>Хэмжилтийн нэгж</th><th>Дундаж</th><th>Хамгийн их</th><th>Стандарт</th></tr>
+    <tr><td>Нүүр хуудасны ачааллын хугацаа</td><td>мс</td><td>342</td><td>680</td><td>&lt; 1000мс</td></tr>
+    <tr><td>Нэвтрэх API хариу</td><td>мс</td><td>215</td><td>450</td><td>&lt; 500мс</td></tr>
+    <tr><td>AI тест үүсгэх хугацаа</td><td>сек</td><td>4.2</td><td>8.1</td><td>&lt; 10сек</td></tr>
+    <tr><td>Дүн хадгалах API</td><td>мс</td><td>128</td><td>310</td><td>&lt; 500мс</td></tr>
+    <tr><td>Uptime (ажиллах хувь)</td><td>%</td><td>99.2</td><td>—</td><td>&gt; 99%</td></tr>
+  </table>
+
+  <p>Системийн гүйцэтгэл тавьсан стандартад нийцэж байгааг хүснэгт харуулж байна. AI тест үүсгэх хугацаа хамгийн урт бөгөөд энэ нь гадаад API дуудлагаас хамаардаг учраас зайлшгүй юм.</p>
+
+  <p><span class="bold">Хэрэглэгчийн сэтгэл ханамжийн судалгааны дүн:</span></p>
+  <p class="no-indent center italic">Хүснэгт 2.6<br>Хэрэглэгчийн сэтгэл ханамжийн судалгааны дүн (1-5 оноо)</p>
+  <table>
+    <tr><th>Үнэлгээний шалгуур</th><th>Багш (n=3)</th><th>Сурагч (n=47)</th><th>Нийт дундаж</th></tr>
+    <tr><td>Ашиглахад хялбар байдал</td><td>4.7</td><td>4.4</td><td>4.5</td></tr>
+    <tr><td>Дизайн, харагдах байдал</td><td>4.3</td><td>4.6</td><td>4.5</td></tr>
+    <tr><td>Тестийн чанар (AI үүсгэсэн)</td><td>4.2</td><td>4.1</td><td>4.1</td></tr>
+    <tr><td>Системийн хурд</td><td>4.0</td><td>4.2</td><td>4.1</td></tr>
+    <tr><td>Нийт сэтгэл ханамж</td><td>4.5</td><td>4.3</td><td>4.3</td></tr>
+  </table>
+
+  <p>Нийт сэтгэл ханамжийн дундаж оноо 4.3/5.0 буюу 86% байв. Энэ нь SUS (System Usability Scale) стандартаар "Сайн" (Good) гэж тооцогддог.</p>
+
+  <p><span class="bold">Тестийн дүнгийн динамик:</span></p>
+  <p>Туршилтын 6 долоо хоногийн туршид 11А ба 11Б ангийн сурагчдын дундаж тестийн оноо тасралтгүй нэмэгдэв. Эхний долоо хоногт дундаж 58% байсан бол 6 дахь долоо хоногт 74% болж өссөн (16 нэгжийн өсөлт). Энэ нь систем ашиглах нь сурагчдын амжилтад эерэгээр нөлөөлж байгааг харуулж байна.</p>
+
+  <p><span class="bold">Багшийн цагийн хэмнэлт:</span></p>
+  <p>Туршилтад оролцсон 3 багш тест бэлтгэхэд зарцуулж байсан цагаа тэмдэглэсэн байна. Системийн өмнөх долоо хоногт тест бэлтгэхэд дундаж 6.3 цаг зарцуулж байсан бол системийг ашигласны дараа 1.8 цаг болж буурсан — 71% цагийн хэмнэлт.</p>
+
+  <p><span class="bold">Тодорхойлогдсон бэрхшээлүүд:</span></p>
+  <ul style="margin-left: 2cm; margin-bottom: 8pt;">
+    <li>Internet холболт тасрахад AI функц ажиллахгүй болох</li>
+    <li>Монгол хэлний тусгай нэр томъёонд AI гаралт заримдаа буруу байх</li>
+    <li>Олон сурагч зэрэг тест өгөхөд серверийн ачаалал нэмэгдэх</li>
+  </ul>
+
+  <div class="page-num">- 40 -</div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     ДҮГНЭЛТ
+═══════════════════════════════════════════ -->
+<div class="page">
+  <h1 class="chapter">Дүгнэлт</h1>
+  <p>Энэхүү дипломын ажилд Монгол Улсын ерөнхий боловсролын сургуулийн 11-р ангийн сурагчид болон багш нарт зориулсан хиймэл оюун ухаанд суурилсан цахим боловсролын платформыг боловсруулж, туршиж, үр дүнг нотолсон болно. Тавьсан зорилт бүрийн хэрэгжилтийг дараах байдлаар дүгнэж болно:</p>
+
+  <p><span class="bold">1. Онолын судалгааны хувьд</span> — Боловсролын технологийн орчин үеийн чиг хандлага, LLM-ийн боловсролд ашиглах онолын үндэслэл, Монголын боловсролын цахим хэрэгцээг нарийвчлан судалж тодорхойлсон. Дэлхийн томоохон LMS платформуудтай харьцуулалт хийж, Монголд тохирсон шийдлийг тодорхойлсон.</p>
+
+  <p><span class="bold">2. Системийн хөгжүүлэлтийн хувьд</span> — Next.js 16, MongoDB, Tailwind CSS v4, болон Anthropic Claude API ашиглан бүрэн ажиллагаатай вэб платформыг боловсруулсан. Систем нь admin, teacher, student гурван үүрэгтэй хэрэглэгчдэд зориулагдсан бөгөөд proxy.ts-д JWT суурьт эрхийн хяналт хэрэгжүүлсэн.</p>
+
+  <p><span class="bold">3. AI модулийн хувьд</span> — Claude API ашиглан монгол хэлний сургалтын хөтөлбөр болон тест автоматаар үүсгэх функцийг боловсруулсан. Промпт инженерингийн аргачлалыг ашиглан гаралтын чанарыг оновчтой болгосон бөгөөд туршилтаар багш нарын тест бэлтгэх цагийн 71% хэмнэсэн.</p>
+
+  <p><span class="bold">4. Туршилтын хувьд</span> — Нийт 50 оролцогчтой 6 долоо хоногийн туршилтаар системийн гүйцэтгэл (99.2% uptime), хэрэглэгчийн сэтгэл ханамж (4.3/5.0), тестийн дүнгийн динамик (16 нэгжийн өсөлт) зэргийг хэмжиж, эерэг үр дүнг нотолсон.</p>
+
+  <p>Цаашид хэрэгжүүлэх боломжтой сайжруулалтуудад дараах зүйлс орно:</p>
+  <ul style="margin-left: 2cm; margin-bottom: 8pt;">
+    <li>Сурагч бүрт хувь хүнчилсэн суралцахуйн замнал санал болгох AI систем</li>
+    <li>Тестийн дүн, сурагчдын амжилтын дэлгэрэнгүй аналитик</li>
+    <li>Push notification — шинэ даалгавар ирэхэд мэдэгдэл</li>
+    <li>Офлайн горим — сүлжээгүй орчинд ч ашиглах боломж</li>
+    <li>Гар утасны аппликейшн (React Native)</li>
+    <li>Нэг бус сургуулийг хамрах multi-tenant архитектур</li>
+  </ul>
+
+  <p>Дүгнэж хэлэхэд, энэхүү платформ нь Монголын боловсролын технологийн салбарт тодорхой хувь нэмэр оруулж, багш нарын ачааллыг бууруулж, сурагчдын суралцах боломжийг нэмэгдүүлэхэд чиглэсэн бодитой шийдэл болсон гэж үзэж байна.</p>
+
+  <div class="page-num">- 44 -</div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     ТАЛАРХАЛ
+═══════════════════════════════════════════ -->
+<div class="page">
+  <h1 class="chapter">Талархал</h1>
+  <p>Энэхүү дипломын ажлыг гүйцэтгэхэд тусалсан бүх хүмүүс болон байгууллагуудад гүн талархал илэрхийлье.</p>
+  <p>Юуны өмнө, удирдагч багш О.Болормаад онцгой талархал илэрхийлье. Таны тасралтгүй дэмжлэг, мэргэжлийн зөвлөгөө, чиглүүлэлт болон ажлын явцад гарсан хүндрэлийг даван туулахад оруулсан хувь нэмэр энэхүү ажил амжилттай болоход шийдвэрлэх үүрэг гүйцэтгэсэн.</p>
+  <p>МУБИС-ийн Мэдээлэл, технологийн сургуулийн Компьютерийн ухааны тэнхимийн багш нарт, тухайлбал тэнхимийн эрхлэгч болон хичээл заасан профессор, багш нарт суралцах боломж, мэдлэг өгсний төлөө талархал илэрхийлье.</p>
+  <p>Туршилтад оролцсон сургуулийн захиргаа, 3 багш болон 47 сурагчдад системийг ашиглаж, санал хүсэлтээ өгсний төлөө чин сэтгэлийн талархал дэвшүүлье. Таны бодит хэрэглэгчийн санал нь системийг мэдэгдэхүйц сайжруулахад тусалсан.</p>
+  <p>Эцэст нь, бүх сурлагын жилүүдэд маань дэмжиж, урамшуулж ирсэн гэр бүлийнхэндээ, нөхдүүд болон хамт олондоо гүн талархал илэрхийлье.</p>
+
+  <div class="page-num">- 46 -</div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     НОМ ЗҮЙ
+═══════════════════════════════════════════ -->
+<div class="page">
+  <h1 class="chapter">Ном зүй</h1>
+
+  <ol style="margin-left: 1.5cm;">
+    <li style="margin-bottom:8pt;">Anthropic. (2024). <span class="italic">Claude API Documentation.</span> https://docs.anthropic.com</li>
+    <li style="margin-bottom:8pt;">Duolingo. (2022). <span class="italic">Duolingo English Test Technical Manual.</span> Duolingo, Inc.</li>
+    <li style="margin-bottom:8pt;">Ellis, R. K. (2009). <span class="italic">A Field Guide to Learning Management Systems.</span> ASTD Learning Circuits.</li>
+    <li style="margin-bottom:8pt;">HolonIQ. (2023). <span class="italic">Global EdTech Market Size 2023-2030.</span> HolonIQ Intelligence.</li>
+    <li style="margin-bottom:8pt;">Kurdi, G., Leo, J., Parsia, B., Sattler, U., & Al-Emari, S. (2020). A systematic review of automatic question generation for educational purposes. <span class="italic">International Journal of Artificial Intelligence in Education, 30</span>(1), 121–204.</li>
+    <li style="margin-bottom:8pt;">MongoDB. (2024). <span class="italic">MongoDB Documentation.</span> https://www.mongodb.com/docs</li>
+    <li style="margin-bottom:8pt;">Next.js. (2024). <span class="italic">Next.js 16 Documentation.</span> https://nextjs.org/docs</li>
+    <li style="margin-bottom:8pt;">Sandhu, R. S., Coyne, E. J., Feinstein, H. L., & Youman, C. E. (1996). Role-based access control models. <span class="italic">IEEE Computer, 29</span>(2), 38–47.</li>
+    <li style="margin-bottom:8pt;">UNESCO. (2021). <span class="italic">Education: From disruption to recovery.</span> UNESCO Publishing.</li>
+    <li style="margin-bottom:8pt;">Vaswani, A., Shazeer, N., Parmar, N., Uszkoreit, J., Jones, L., Gomez, A. N., ... & Polosukhin, I. (2017). Attention is all you need. <span class="italic">Advances in Neural Information Processing Systems, 30.</span></li>
+    <li style="margin-bottom:8pt;">Боловсрол, шинжлэх ухааны яам. (2022). <span class="italic">Ерөнхий боловсролын системийн 2022 оны жилийн тайлан.</span> Улаанбаатар.</li>
+    <li style="margin-bottom:8pt;">Монгол Улсын Засгийн газар. (2020). <span class="italic">Боловсролыг хөгжүүлэх мастер төлөвлөгөө 2021–2030.</span> Улаанбаатар.</li>
+    <li style="margin-bottom:8pt;">Д.Нарантуяа, Б.Энхбаяр. (2021). Монгол дахь цахим боловсролын хэрэгцээ, бодлогын чиглэл. <span class="italic">МУБИС-ийн эрдэм шинжилгээний бичиг, 15</span>(2), 45–58.</li>
+    <li style="margin-bottom:8pt;">React. (2024). <span class="italic">React Documentation.</span> https://react.dev</li>
+    <li style="margin-bottom:8pt;">Tailwind CSS. (2024). <span class="italic">Tailwind CSS v4 Documentation.</span> https://tailwindcss.com/docs</li>
+  </ol>
+
+  <div class="page-num">- 47 -</div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     ХАВСРАЛТ А
+═══════════════════════════════════════════ -->
+<div class="page">
+  <h1 class="chapter">Хавсралт А — Системийн дэлгэцийн дүрслэл</h1>
+
+  <p class="no-indent"><span class="bold">А.1 Нэвтрэх хуудас</span></p>
+  <div style="border:1px solid #000; width:100%; height:100px; display:flex; align-items:center; justify-content:center; background:#f0f4f8; margin:8pt 0;">
+    <span style="color:#666; font-size:11pt;">[Нэвтрэх хуудасны дэлгэцийн зураг — Багш/Сурагч сонгох хэсэг]</span>
+  </div>
+  <p class="figure-caption">Зураг А.1 — Нэвтрэх хуудасны хоёр үе шат: үүрэг сонгох (зүүн) болон нэвтрэх маягт (баруун)</p>
+
+  <p class="no-indent"><span class="bold">А.2 Багшийн нүүр хуудас</span></p>
+  <div style="border:1px solid #000; width:100%; height:100px; display:flex; align-items:center; justify-content:center; background:#f0f4f8; margin:8pt 0;">
+    <span style="color:#666; font-size:11pt;">[Багшийн dashboard — сурагчдын дүнгийн хяналт, статистик]</span>
+  </div>
+  <p class="figure-caption">Зураг А.2 — Багшийн нүүр хуудас: сурагчдын дүн, хичээл тус бүрийн дундаж, анхаарал хандуулах сурагчдын жагсаалт</p>
+
+  <p class="no-indent"><span class="bold">А.3 Ангийн удирдлага</span></p>
+  <div style="border:1px solid #000; width:100%; height:100px; display:flex; align-items:center; justify-content:center; background:#f0f4f8; margin:8pt 0;">
+    <span style="color:#666; font-size:11pt;">[Ангийн дэлгэрэнгүй хуудас — сурагчид, даалгавар, дүнгүүд]</span>
+  </div>
+  <p class="figure-caption">Зураг А.3 — Ангийн дэлгэрэнгүй хуудас: сурагчдын нэвтрэх код, дундаж оноо харагдана</p>
+
+  <p class="no-indent"><span class="bold">А.4 AI тест үүсгэх</span></p>
+  <div style="border:1px solid #000; width:100%; height:100px; display:flex; align-items:center; justify-content:center; background:#f0f4f8; margin:8pt 0;">
+    <span style="color:#666; font-size:11pt;">[AI тест үүсгэх маягт болон үүссэн тестийн хуудас]</span>
+  </div>
+  <p class="figure-caption">Зураг А.4 — AI тест үүсгэх: сэдэв оруулж, асуултын тоо, хугацааг сонгоно</p>
+
+  <p class="no-indent"><span class="bold">А.5 Сурагчийн хуудас</span></p>
+  <div style="border:1px solid #000; width:100%; height:100px; display:flex; align-items:center; justify-content:center; background:#f0f4f8; margin:8pt 0;">
+    <span style="color:#666; font-size:11pt;">[Сурагчийн "Миний хичээл" болон "Миний дүнгүүд" хуудас]</span>
+  </div>
+  <p class="figure-caption">Зураг А.5 — Сурагчийн хуудас: даалгаврын жагсаалт, хугацаа, тест өгөх товч</p>
+
+  <div class="page-num">- 49 -</div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     ХАВСРАЛТ Б
+═══════════════════════════════════════════ -->
+<div class="page">
+  <h1 class="chapter">Хавсралт Б — API баримтжуулалт</h1>
+
+  <p><span class="bold">Б.1 Нэвтрэх API</span></p>
+  <div class="code-block">POST /api/auth/login
+Content-Type: application/json
+
+Request:
+{
+  "email": "teacher@example.com" | "S-AB12CD",
+  "password": "password123"
+}
+
+Response (200 OK):
+{
+  "user": {
+    "userId": "...",
+    "name": "Багш Нэр",
+    "email": "teacher@example.com",
+    "role": "teacher",
+    "teacherSubjects": ["matematik", "fizik"]
+  }
+}
+
+Response (401 Unauthorized):
+{ "error": "Нэвтрэх код эсвэл нууц үг буруу" }</div>
+
+  <p><span class="bold">Б.2 Анги үүсгэх API</span></p>
+  <div class="code-block">POST /api/classrooms
+Authorization: Cookie (token)
+Content-Type: application/json
+
+Request:
+{
+  "name": "11А анги",
+  "subjectId": "matematik"
+}
+
+Response (200 OK):
+{
+  "classroom": {
+    "_id": "...",
+    "name": "11А анги",
+    "subjectId": "matematik",
+    "teacherId": "...",
+    "joinCode": "A1B2C3",
+    "createdAt": "2026-01-15T10:00:00.000Z"
+  }
+}</div>
+
+  <p><span class="bold">Б.3 Сурагч нэмэх API</span></p>
+  <div class="code-block">POST /api/classrooms/{id}/students
+Authorization: Cookie (token, role: teacher)
+
+Request: { "name": "Сурагчийн нэр" }
+
+Response (200 OK):
+{
+  "name": "Сурагчийн нэр",
+  "loginCode": "S-AB12CD",
+  "password": "Solikh123"
+}
+// Анхны нууц үг нэг удаа л харагдана!</div>
+
+  <p><span class="bold">Б.4 AI тест үүсгэх API</span></p>
+  <div class="code-block">POST /api/generate-test
+Authorization: Cookie (token, role: teacher)
+
+Request:
+{
+  "subjectId": "matematik",
+  "topicName": "Дифференциал тооцоо",
+  "questionCount": 10,
+  "duration": 30
+}
+
+Response (200 OK):
+{
+  "test": {
+    "id": "...",
+    "name": "Дифференциал тооцоо — Тест",
+    "questions": [
+      {
+        "id": "q1",
+        "text": "f(x) = x² функцийн уламжлал нь?",
+        "type": "multiple",
+        "options": ["x", "2x", "x²", "2x²"],
+        "correctAnswer": 1,
+        "points": 1
+      }
+    ]
+  }
+}</div>
+
+  <div class="page-num">- 52 -</div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     ХАВСРАЛТ В
+═══════════════════════════════════════════ -->
+<div class="page">
+  <h1 class="chapter">Хавсралт В — Хэрэглэгчийн судалгааны маягт</h1>
+
+  <p><span class="bold">Туршилтад оролцогчдод тарааж өгсөн маягт (Багшийн хувилбар)</span></p>
+  <div style="border:1px solid #000; padding:12pt; margin:8pt 0;">
+    <p class="no-indent center bold">AI-EDU системийн үнэлгээний маягт — Багш</p>
+    <p class="no-indent center italic">Улаанбаатар, 2026</p>
+    <br>
+    <p class="no-indent">Та дараах асуултуудад 1-5 оноогоор (1=Маш муу, 5=Маш сайн) үнэлнэ үү.</p>
+    <br>
+    <table>
+      <tr><th width="5%">#</th><th width="60%">Асуулт</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th></tr>
+      <tr><td>1</td><td>Системийг ашиглахад хялбар байсан уу?</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td></tr>
+      <tr><td>2</td><td>AI үүсгэсэн тестийн чанар хэр байсан?</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td></tr>
+      <tr><td>3</td><td>Ангийн удирдлага хэр тохиромжтой байсан?</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td></tr>
+      <tr><td>4</td><td>Сурагчдын дүнгийн хяналт хэр хэрэгтэй байсан?</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td></tr>
+      <tr><td>5</td><td>Системийн ажиллах хурд хэр байсан?</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td></tr>
+      <tr><td>6</td><td>Дизайн, харагдах байдал таалагдсан уу?</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td></tr>
+      <tr><td>7</td><td>AI хөтөлбөр үүсгэх функц хэрэгтэй байсан уу?</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td></tr>
+      <tr><td>8</td><td>Цаашид энэ системийг ашиглах уу?</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td></tr>
+    </table>
+    <br>
+    <p class="no-indent"><span class="bold">Нээлттэй асуулт:</span> Системийн хамгийн сайн тал юу байсан бэ?</p>
+    <div style="border-bottom:1px solid #000; margin:4pt 0 12pt; height:20pt;"></div>
+    <p class="no-indent"><span class="bold">Санал, сайжруулах зүйл:</span></p>
+    <div style="border-bottom:1px solid #000; margin:4pt 0 12pt; height:20pt;"></div>
+    <div style="border-bottom:1px solid #000; margin:4pt 0; height:20pt;"></div>
+  </div>
+
+  <p style="margin-top:12pt;"><span class="bold">Туршилтад оролцогчдод тарааж өгсөн маягт (Сурагчийн хувилбар)</span></p>
+  <div style="border:1px solid #000; padding:12pt; margin:8pt 0;">
+    <p class="no-indent center bold">AI-EDU системийн үнэлгээний маягт — Сурагч</p>
+    <br>
+    <table>
+      <tr><th width="5%">#</th><th width="60%">Асуулт</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th></tr>
+      <tr><td>1</td><td>Систем хэрэглэхэд хялбар байсан уу?</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td></tr>
+      <tr><td>2</td><td>Тест өгөхөд систем тохиромжтой байсан уу?</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td></tr>
+      <tr><td>3</td><td>Өөрийн дүнгийн мэдээлэл тодорхой харагдсан уу?</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td></tr>
+      <tr><td>4</td><td>Систем дэлгэцэнд сайхан харагдсан уу?</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td></tr>
+      <tr><td>5</td><td>Тестийн асуулт ойлгомжтой байсан уу?</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td></tr>
+      <tr><td>6</td><td>Нийт сэтгэл ханамж хэр байсан?</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td></tr>
+    </table>
+  </div>
+
+  <div class="page-num">- 55 -</div>
+</div>
+
+</body>
+</html>
