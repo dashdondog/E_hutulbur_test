@@ -11,19 +11,45 @@ export default function LoginPage() {
 
   const [step, setStep] = useState<"intro" | "login">("intro");
   const [role, setRole] = useState<"teacher" | "student" | null>(null);
+  // "login" | "register" — зөвхөн багшид хамаарна
+  const [mode, setMode] = useState<"login" | "register">("login");
+
+  // login fields
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+
+  // register fields
+  const [regName, setRegName] = useState("");
+  const [regEmail, setRegEmail] = useState("");
+  const [regPassword, setRegPassword] = useState("");
+  const [regConfirm, setRegConfirm] = useState("");
+  const [showRegPassword, setShowRegPassword] = useState(false);
+  const [showRegConfirm, setShowRegConfirm] = useState(false);
+
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
 
   function selectRole(r: "teacher" | "student") {
     setRole(r);
+    setMode("login");
     setStep("login");
     setError("");
   }
 
-  async function handleSubmit(e: React.FormEvent) {
+  function goBack() {
+    setStep("intro");
+    setError("");
+    setEmail(""); setPassword("");
+    setRegName(""); setRegEmail(""); setRegPassword(""); setRegConfirm("");
+  }
+
+  function switchMode(m: "login" | "register") {
+    setMode(m);
+    setError("");
+  }
+
+  async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     setError("");
     setLoading(true);
@@ -35,6 +61,36 @@ export default function LoginPage() {
       if (userRole === "student") router.push("/student");
       else if (userRole === "admin") router.push("/admin");
       else router.push("/");
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleRegister(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    if (regPassword !== regConfirm) {
+      setError("Нууц үг таарахгүй байна");
+      return;
+    }
+    if (regPassword.length < 6) {
+      setError("Нууц үг хамгийн багадаа 6 тэмдэгт байх ёстой");
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: regName, email: regEmail, password: regPassword, role: "teacher" }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Бүртгэл амжилтгүй");
+      // auto login after register
+      await login(regEmail, regPassword);
+      router.push("/");
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -96,13 +152,13 @@ export default function LoginPage() {
             </div>
           )}
 
-          {/* ── Step 2: Login form ── */}
+          {/* ── Step 2: Teacher or Student form ── */}
           {step === "login" && (
             <div>
               {/* Header stripe */}
               <div className={`px-8 py-5 ${role === "teacher" ? "bg-[var(--color-primary)]" : "bg-[var(--color-accent)]"}`}>
                 <button
-                  onClick={() => { setStep("intro"); setError(""); setEmail(""); setPassword(""); }}
+                  onClick={goBack}
                   className="flex items-center gap-1.5 text-white/80 hover:text-white text-sm mb-3 transition-colors"
                 >
                   <ArrowLeft size={14} /> Буцах
@@ -115,65 +171,159 @@ export default function LoginPage() {
                     }
                   </div>
                   <div>
-                    <p className="font-semibold text-white">{role === "teacher" ? "Багшийн" : "Сурагчийн"} нэвтрэлт</p>
-                    <p className="text-xs text-white/70">{role === "teacher" ? "Имэйлээрээ нэвтэрнэ үү" : "Багшаас авсан кодоороо нэвтэрнэ үү"}</p>
+                    <p className="font-semibold text-white">
+                      {role === "teacher"
+                        ? (mode === "login" ? "Багшийн нэвтрэлт" : "Багшийн бүртгэл")
+                        : "Сурагчийн нэвтрэлт"}
+                    </p>
+                    <p className="text-xs text-white/70">
+                      {role === "teacher"
+                        ? (mode === "login" ? "Имэйлээрээ нэвтэрнэ үү" : "Шинэ бүртгэл үүсгэнэ үү")
+                        : "Багшаас авсан кодоороо нэвтэрнэ үү"}
+                    </p>
                   </div>
                 </div>
-              </div>
 
-              <form onSubmit={handleSubmit} className="p-8 space-y-4">
-                {error && (
-                  <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg p-3">{error}</div>
-                )}
-
-                <div>
-                  <label className="block text-sm font-medium text-[var(--color-text)] mb-1">
-                    {role === "teacher" ? "Имэйл" : "Нэвтрэх код"}
-                  </label>
-                  <input
-                    type="text"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    autoFocus
-                    className="w-full border border-[var(--color-border)] bg-[var(--color-surface-alt)] text-[var(--color-text)] rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
-                    placeholder={role === "teacher" ? "example@mail.com" : "S-XXXXXX"}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-[var(--color-text)] mb-1">Нууц үг</label>
-                  <div className="relative">
-                    <input
-                      type={showPassword ? "text" : "password"}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                      className="w-full border border-[var(--color-border)] bg-[var(--color-surface-alt)] text-[var(--color-text)] rounded-lg px-4 py-2.5 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
-                      placeholder="••••••"
-                    />
+                {/* Login / Register tabs — teacher only */}
+                {role === "teacher" && (
+                  <div className="flex gap-1 mt-4 bg-white/10 rounded-lg p-1">
                     <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
+                      onClick={() => switchMode("login")}
+                      className={`flex-1 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                        mode === "login" ? "bg-white text-[var(--color-primary)]" : "text-white/80 hover:text-white"
+                      }`}
                     >
-                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                      Нэвтрэх
+                    </button>
+                    <button
+                      onClick={() => switchMode("register")}
+                      className={`flex-1 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                        mode === "register" ? "bg-white text-[var(--color-primary)]" : "text-white/80 hover:text-white"
+                      }`}
+                    >
+                      Бүртгүүлэх
                     </button>
                   </div>
-                </div>
+                )}
+              </div>
 
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className={`w-full py-2.5 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 ${
-                    role === "teacher"
-                      ? "bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-dark)]"
-                      : "bg-[var(--color-accent)] text-black hover:bg-[var(--color-accent-dark)]"
-                  }`}
-                >
-                  {loading ? "Нэвтэрч байна..." : "Нэвтрэх"}
-                </button>
-              </form>
+              {/* ── Login form ── */}
+              {mode === "login" && (
+                <form onSubmit={handleLogin} className="p-8 space-y-4">
+                  {error && (
+                    <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg p-3">{error}</div>
+                  )}
+                  <div>
+                    <label className="block text-sm font-medium text-[var(--color-text)] mb-1">
+                      {role === "teacher" ? "Имэйл" : "Нэвтрэх код"}
+                    </label>
+                    <input
+                      type="text"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                      autoFocus
+                      className="w-full border border-[var(--color-border)] bg-[var(--color-surface-alt)] text-[var(--color-text)] rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+                      placeholder={role === "teacher" ? "example@mail.com" : "S-XXXXXX"}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-[var(--color-text)] mb-1">Нууц үг</label>
+                    <div className="relative">
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                        className="w-full border border-[var(--color-border)] bg-[var(--color-surface-alt)] text-[var(--color-text)] rounded-lg px-4 py-2.5 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+                        placeholder="••••••"
+                      />
+                      <button type="button" onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] hover:text-[var(--color-text)]">
+                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                    </div>
+                  </div>
+                  <button type="submit" disabled={loading}
+                    className={`w-full py-2.5 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 ${
+                      role === "teacher"
+                        ? "bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-dark)]"
+                        : "bg-[var(--color-accent)] text-black hover:bg-[var(--color-accent-dark)]"
+                    }`}>
+                    {loading ? "Нэвтэрч байна..." : "Нэвтрэх"}
+                  </button>
+                </form>
+              )}
+
+              {/* ── Register form (teacher only) ── */}
+              {mode === "register" && (
+                <form onSubmit={handleRegister} className="p-8 space-y-4">
+                  {error && (
+                    <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg p-3">{error}</div>
+                  )}
+                  <div>
+                    <label className="block text-sm font-medium text-[var(--color-text)] mb-1">Нэр</label>
+                    <input
+                      type="text"
+                      value={regName}
+                      onChange={(e) => setRegName(e.target.value)}
+                      required
+                      autoFocus
+                      className="w-full border border-[var(--color-border)] bg-[var(--color-surface-alt)] text-[var(--color-text)] rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+                      placeholder="Овог нэр"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-[var(--color-text)] mb-1">Имэйл</label>
+                    <input
+                      type="email"
+                      value={regEmail}
+                      onChange={(e) => setRegEmail(e.target.value)}
+                      required
+                      className="w-full border border-[var(--color-border)] bg-[var(--color-surface-alt)] text-[var(--color-text)] rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+                      placeholder="example@mail.com"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-[var(--color-text)] mb-1">Нууц үг</label>
+                    <div className="relative">
+                      <input
+                        type={showRegPassword ? "text" : "password"}
+                        value={regPassword}
+                        onChange={(e) => setRegPassword(e.target.value)}
+                        required
+                        className="w-full border border-[var(--color-border)] bg-[var(--color-surface-alt)] text-[var(--color-text)] rounded-lg px-4 py-2.5 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+                        placeholder="••••••"
+                      />
+                      <button type="button" onClick={() => setShowRegPassword(!showRegPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] hover:text-[var(--color-text)]">
+                        {showRegPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-[var(--color-text)] mb-1">Нууц үг давтах</label>
+                    <div className="relative">
+                      <input
+                        type={showRegConfirm ? "text" : "password"}
+                        value={regConfirm}
+                        onChange={(e) => setRegConfirm(e.target.value)}
+                        required
+                        className="w-full border border-[var(--color-border)] bg-[var(--color-surface-alt)] text-[var(--color-text)] rounded-lg px-4 py-2.5 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+                        placeholder="••••••"
+                      />
+                      <button type="button" onClick={() => setShowRegConfirm(!showRegConfirm)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] hover:text-[var(--color-text)]">
+                        {showRegConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                    </div>
+                  </div>
+                  <button type="submit" disabled={loading}
+                    className="w-full py-2.5 rounded-lg text-sm font-semibold bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-dark)] transition-colors disabled:opacity-50">
+                    {loading ? "Бүртгэж байна..." : "Бүртгүүлэх"}
+                  </button>
+                </form>
+              )}
             </div>
           )}
         </div>
