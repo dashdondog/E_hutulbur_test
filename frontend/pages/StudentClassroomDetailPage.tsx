@@ -123,7 +123,7 @@ export default function StudentClassroomDetailPage() {
                         </div>
                       ) : (
                         <Link
-                          href={`/subjects/${a.subjectId}/tests/${a.testId}`}
+                          href={`/student/subjects/${a.subjectId}/tests/${a.testId}`}
                           className="bg-[var(--color-primary)] text-white px-4 py-1.5 rounded-lg text-sm hover:bg-[var(--color-primary-dark)] transition-colors"
                         >
                           Тест өгөх

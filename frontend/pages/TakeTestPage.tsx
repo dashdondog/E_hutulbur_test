@@ -148,7 +148,13 @@ export default function TakeTestPage() {
               </div>
             )}
             <button
-              onClick={() => router.push(`/subjects/${subjectId}`)}
+              onClick={() => {
+                if (user?.role === "student") {
+                  router.back();
+                } else {
+                  router.push(`/subjects/${subjectId}`);
+                }
+              }}
               className="bg-[var(--color-surface-alt)] text-[var(--color-text-secondary)] px-3 sm:px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--color-border)]"
             >
               Буцах
