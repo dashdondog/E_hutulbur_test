@@ -26,12 +26,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Initial fast load: JWT-only, no DB hit.
     fetch("/api/auth/me")
       .then((res) => (res.ok ? res.json() : { user: null }))
       .then((data) => setUser(data.user))
       .catch(() => setUser(null))
       .finally(() => setLoading(false));
   }, []);
+
+  // Lazy hydrate teacherSubjects in the background — doesn't block initial render.
+  useEffect(() => {
+    if (user?.role !== "teacher" || user.teacherSubjects !== undefined) return;
+    let cancelled = false;
+    fetch("/api/auth/me?withSubjects=1")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (cancelled || !data?.user) return;
+        setUser(prev =>
+          prev ? { ...prev, teacherSubjects: data.user.teacherSubjects ?? [] } : prev
+        );
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.role, user?.teacherSubjects]);
 
   async function login(email: string, password: string) {
     const res = await fetch("/api/auth/login", {

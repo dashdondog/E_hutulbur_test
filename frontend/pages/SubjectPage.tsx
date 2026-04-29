@@ -11,8 +11,9 @@ import CurriculumTab from "@/frontend/components/CurriculumTab";
 import TopicsTab from "@/frontend/components/TopicsTab";
 import TestsTab from "@/frontend/components/TestsTab";
 import ResultsTab from "@/frontend/components/ResultsTab";
+import ChatTab from "@/frontend/components/ChatTab";
 import { useAuth } from "@/frontend/lib/auth-context";
-import { FolderOpen, BookOpen, List, ClipboardList, BarChart3 } from "lucide-react";
+import { FolderOpen, BookOpen, List, ClipboardList, BarChart3, MessageSquare } from "lucide-react";
 import type { ComponentType } from "react";
 import type { LucideProps } from "lucide-react";
 
@@ -24,7 +25,7 @@ interface UploadedFile {
   uploadedAt: string;
 }
 
-type Tab = "files" | "curriculum" | "topics" | "tests" | "results";
+type Tab = "files" | "curriculum" | "topics" | "tests" | "chat" | "results";
 
 export default function SubjectPage() {
   const params = useParams();
@@ -39,6 +40,37 @@ export default function SubjectPage() {
   const [tests, setTests] = useState<Test[]>([]);
   const [generating, setGenerating] = useState<string | null>(null);
   const [genProgress, setGenProgress] = useState<{ current: number; total: number; topic: string } | null>(null);
+  const [templateText, setTemplateText] = useState("");
+  const [templateFileName, setTemplateFileName] = useState("");
+  const [templateUploading, setTemplateUploading] = useState(false);
+
+  async function handleTemplateFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setTemplateUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/extract-template", { method: "POST", body: fd });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || "Файл боловсруулахад алдаа");
+        return;
+      }
+      setTemplateText(data.text);
+      setTemplateFileName(data.fileName);
+    } catch {
+      alert("Файл оруулахад алдаа гарлаа");
+    } finally {
+      setTemplateUploading(false);
+      e.target.value = "";
+    }
+  }
+
+  function clearTemplate() {
+    setTemplateText("");
+    setTemplateFileName("");
+  }
 
   const loadFiles = useCallback(async () => {
     const res = await fetch(`/api/upload?subjectId=${subjectId}`);
@@ -46,16 +78,27 @@ export default function SubjectPage() {
     setFiles(data.files || []);
   }, [subjectId]);
 
-  const reloadData = useCallback(() => {
+  // Per-list reloads so saving e.g. a curriculum doesn't bust topic/test array
+  // references and force unrelated tabs to re-render.
+  const reloadCurricula = useCallback(() => {
     setCurricula(store.getCurricula(subjectId));
+  }, [subjectId]);
+  const reloadTopics = useCallback(() => {
     setTopics(store.getTopics(subjectId));
+  }, [subjectId]);
+  const reloadTests = useCallback(() => {
     setTests(store.getTests(subjectId));
   }, [subjectId]);
+  const reloadAll = useCallback(() => {
+    reloadCurricula();
+    reloadTopics();
+    reloadTests();
+  }, [reloadCurricula, reloadTopics, reloadTests]);
 
   useEffect(() => {
     loadFiles();
-    reloadData();
-  }, [loadFiles, reloadData]);
+    reloadAll();
+  }, [loadFiles, reloadAll]);
 
   // AI Generate All 4 Lesson Plans in one call
   async function handleGenerateCurriculum() {
@@ -69,7 +112,10 @@ export default function SubjectPage() {
       const res = await fetch("/api/generate/curriculum", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ subjectId }),
+        body: JSON.stringify({
+          subjectId,
+          templateText: templateText.trim() || undefined,
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -95,7 +141,7 @@ export default function SubjectPage() {
         };
         store.saveCurriculum(curriculum);
       }
-      reloadData();
+      reloadCurricula();
       setActiveTab("curriculum");
     } catch {
       alert("Хөтөлбөр үүсгэхэд алдаа гарлаа");
@@ -140,7 +186,7 @@ export default function SubjectPage() {
           store.saveTopic(topic);
         }
       );
-      reloadData();
+      reloadTopics();
       setActiveTab("topics");
     } catch {
       alert("Сэдвүүд үүсгэхэд алдаа гарлаа");
@@ -189,7 +235,7 @@ export default function SubjectPage() {
         createdAt: new Date().toISOString(),
       };
       store.saveTest(test);
-      reloadData();
+      reloadTests();
       setActiveTab("tests");
     } catch {
       alert("Тест үүсгэхэд алдаа гарлаа");
@@ -226,7 +272,12 @@ export default function SubjectPage() {
     { key: "curriculum", label: "Хөтөлбөр", count: curricula.length, icon: BookOpen },
     { key: "topics", label: "Сэдвүүд", count: topics.length, icon: List },
     { key: "tests", label: "Тестүүд", count: tests.length, icon: ClipboardList },
-    ...(user?.role === "teacher" ? [{ key: "results" as Tab, label: "Дүнгүүд", count: 0, icon: BarChart3 }] : []),
+    ...(user?.role === "teacher"
+      ? [
+          { key: "chat" as Tab, label: "Чат", count: 0, icon: MessageSquare },
+          { key: "results" as Tab, label: "Дүнгүүд", count: 0, icon: BarChart3 },
+        ]
+      : []),
   ];
 
   return (
@@ -273,16 +324,57 @@ export default function SubjectPage() {
         {/* Tab: Files */}
         {activeTab === "files" && (
           <div>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-[var(--color-text)]">
-                Сурах бичиг & Нэмэлт материал
-              </h2>
-            </div>
             <FileUpload
               subjectId={subjectId}
               files={files}
               onFilesChange={loadFiles}
             />
+
+            {/* Template import — required for AI generation */}
+            <div className="mt-3 bg-[var(--color-surface)] rounded-lg border border-[var(--color-primary)]/40 p-3">
+              <h3 className="text-sm font-semibold text-[var(--color-text)] mb-3">
+                Загвар хөтөлбөр оруулах <span className="text-red-500">*</span>
+              </h3>
+              <div className="space-y-3">
+                <p className="text-xs text-[var(--color-text-secondary)]">
+                  AI таны оруулсан загвар хөтөлбөрийн ЗААВРЫН ДАГУУ хөтөлбөр үүсгэнэ. Хүрээ, бүтэц, бичих стиль, үе шат, үнэлгээний шалгуурыг таны загвараас ЯГ авна. Файлаа оруулна уу — энэ нь заавал шаардлагатай.
+                </p>
+                <div>
+                  <label className="block text-xs text-[var(--color-text-secondary)] mb-1">Загварын файл оруулах (PDF, DOCX, TXT, MD, HTML)</label>
+                  {templateFileName ? (
+                    <div className="flex items-center gap-2 bg-[var(--color-primary)]/10 border border-[var(--color-primary)]/20 rounded-md px-3 py-2">
+                      <span className="text-sm text-[var(--color-text)]">📄 {templateFileName}</span>
+                      <span className="text-xs text-[var(--color-text-muted)]">({templateText.length.toLocaleString()} тэмдэгт)</span>
+                      <button
+                        onClick={() => { setTemplateText(""); setTemplateFileName(""); }}
+                        className="ml-auto text-xs text-red-500 hover:text-red-700"
+                      >
+                        Хасах
+                      </button>
+                    </div>
+                  ) : (
+                    <label className={`flex items-center justify-center gap-2 border-2 border-dashed border-[var(--color-border)] rounded-md px-3 py-3 text-sm text-[var(--color-text-secondary)] cursor-pointer hover:border-[var(--color-primary)] hover:bg-[var(--color-primary)]/5 transition-colors ${templateUploading ? "opacity-50 pointer-events-none" : ""}`}>
+                      <input
+                        type="file"
+                        accept=".pdf,.docx,.txt,.md,.html,.htm,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/html,text/markdown"
+                        onChange={handleTemplateFile}
+                        className="hidden"
+                        disabled={templateUploading}
+                      />
+                      {templateUploading ? "Боловсруулж байна..." : "📤 Файл сонгох"}
+                    </label>
+                  )}
+                </div>
+                {templateText.trim() && (
+                  <button
+                    onClick={clearTemplate}
+                    className="text-xs text-red-500 hover:text-red-700"
+                  >
+                    Загвар арилгах
+                  </button>
+                )}
+              </div>
+            </div>
 
             {/* AI Generate Actions */}
             {files.length > 0 && (
@@ -291,21 +383,28 @@ export default function SubjectPage() {
                   AI-р автомат үүсгэх
                 </h3>
                 <p className="text-sm text-[var(--color-text-secondary)] mb-4">
-                  Байршуулсан файлуудын агуулгаас автоматаар хөтөлбөр, сэдэв, тест
-                  үүсгэнэ
+                  Хөтөлбөр үүсгэхэд таны оруулсан загвар хөтөлбөрийн зааврыг дагана. Сэдэв болон тестийг сурах бичгийн агуулгаас гаргана.
                 </p>
+
+                {!templateText.trim() && (
+                  <div className="mb-3 text-xs text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-2">
+                    ⚠️ Хөтөлбөр үүсгэхийн тулд эхлээд дээрх "Загвар хөтөлбөр" хэсэгт загвараа оруулна уу.
+                  </div>
+                )}
+
                 <div className="flex flex-wrap gap-3">
                   <button
                     onClick={handleGenerateCurriculum}
-                    disabled={!!generating}
-                    className="flex items-center gap-2 bg-[var(--color-primary)] text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-[var(--color-primary-dark)] transition-colors disabled:opacity-50"
+                    disabled={!!generating || !templateText.trim()}
+                    title={!templateText.trim() ? "Эхлээд загвар хөтөлбөр оруулна уу" : ""}
+                    className="flex items-center gap-2 bg-[var(--color-primary)] text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-[var(--color-primary-dark)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {generating === "curriculum" ? (
                       <>
                         <Spinner /> Хөтөлбөр үүсгэж байна...
                       </>
                     ) : (
-                      <>📋 Хөтөлбөр үүсгэх</>
+                      <>📋 Загвараар хөтөлбөр үүсгэх</>
                     )}
                   </button>
                   <button
@@ -376,23 +475,24 @@ export default function SubjectPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-[var(--color-primary)]">
-                      PDF-ээс бүх сэдвээр хөтөлбөр үүсгэх үү?
+                      Загвар хөтөлбөрийн дагуу үүсгэх үү?
                     </p>
                     <p className="text-xs text-[var(--color-primary)] mt-0.5">
-                      Номны бүх бүлэг/сэдвээр тус тусад нь нэгж хөтөлбөр үүсгэнэ
+                      Файлууд таб дээр загвар оруулсны дараа AI таны зааврын дагуу хөтөлбөр үүсгэнэ
                     </p>
                   </div>
                   <button
                     onClick={handleGenerateCurriculum}
-                    disabled={!!generating}
-                    className="flex items-center gap-2 bg-[var(--color-primary)] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--color-primary-dark)] disabled:opacity-50"
+                    disabled={!!generating || !templateText.trim()}
+                    title={!templateText.trim() ? "Эхлээд Файлууд таб дээр загвар оруулна уу" : ""}
+                    className="flex items-center gap-2 bg-[var(--color-primary)] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--color-primary-dark)] disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {generating === "curriculum" ? (
                       <>
                         <Spinner /> Үүсгэж байна...
                       </>
                     ) : (
-                      "AI-р бүгдийг үүсгэх"
+                      "Загвараар үүсгэх"
                     )}
                   </button>
                 </div>
@@ -419,7 +519,7 @@ export default function SubjectPage() {
             <CurriculumTab
               subjectId={subjectId}
               curricula={curricula}
-              onUpdate={reloadData}
+              onUpdate={reloadCurricula}
             />
           </div>
         )}
@@ -450,7 +550,7 @@ export default function SubjectPage() {
             <TopicsTab
               subjectId={subjectId}
               topics={topics}
-              onUpdate={reloadData}
+              onUpdate={reloadTopics}
             />
           </div>
         )}
@@ -489,9 +589,14 @@ export default function SubjectPage() {
               subjectId={subjectId}
               topics={topics}
               tests={tests}
-              onUpdate={reloadData}
+              onUpdate={reloadTests}
             />
           </div>
+        )}
+
+        {/* Tab: Chat (teacher only) */}
+        {activeTab === "chat" && user?.role === "teacher" && (
+          <ChatTab curricula={curricula} tests={tests} onUpdate={reloadAll} />
         )}
 
         {/* Tab: Results (teacher only) */}

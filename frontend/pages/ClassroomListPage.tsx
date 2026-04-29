@@ -29,11 +29,22 @@ export default function ClassroomListPage() {
     ? subjects.filter((s) => user.teacherSubjects!.includes(s.id))
     : subjects;
 
-  const loadClassrooms = () => {
-    fetch("/api/classrooms")
-      .then((r) => r.json())
-      .then((d) => setClassrooms(d.classrooms || []))
-      .finally(() => setLoading(false));
+  const loadClassrooms = async () => {
+    try {
+      const r = await fetch("/api/classrooms");
+      const text = await r.text();
+      if (!text) {
+        setClassrooms([]);
+        return;
+      }
+      const d = JSON.parse(text);
+      setClassrooms(d.classrooms || []);
+    } catch (err) {
+      console.error("loadClassrooms failed:", err);
+      setClassrooms([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { loadClassrooms(); }, []);

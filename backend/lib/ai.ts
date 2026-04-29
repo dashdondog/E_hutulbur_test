@@ -7,51 +7,102 @@ function truncateText(text: string, maxChars = 6000): string {
   return text.slice(0, maxChars) + "\n\n[... текст хасагдсан ...]";
 }
 
-async function generateJSON(prompt: string, retries = 2): Promise<string> {
-  const model = genAI.getGenerativeModel({
-    model: "gemini-2.5-flash",
-    generationConfig: {
-      temperature: 0.3,
-      responseMimeType: "application/json",
-    },
-  });
+const MODEL_FALLBACK_ORDER = [
+  "gemini-2.5-flash",
+  "gemini-2.5-flash-lite",
+  "gemini-2.0-flash",
+  "gemini-2.0-flash-lite",
+];
 
-  for (let attempt = 0; attempt <= retries; attempt++) {
-    try {
-      const result = await model.generateContent(prompt);
-      const text = result.response.text();
-      return text
-        .replace(/```json\n?/g, "")
-        .replace(/```\n?/g, "")
-        .trim();
-    } catch (err: unknown) {
-      const status = (err as { status?: number }).status;
-      if (status === 429 && attempt < retries) {
-        console.log(`Rate limited, waiting 10s before retry (attempt ${attempt + 1}/${retries})...`);
-        await new Promise(r => setTimeout(r, 10000));
-        continue;
+async function generateJSON(prompt: string, retries = 2): Promise<string> {
+  const generationConfig = {
+    temperature: 0.3,
+    responseMimeType: "application/json",
+  };
+
+  for (let modelIndex = 0; modelIndex < MODEL_FALLBACK_ORDER.length; modelIndex++) {
+    const modelName = MODEL_FALLBACK_ORDER[modelIndex];
+    const model = genAI.getGenerativeModel({ model: modelName, generationConfig });
+
+    for (let attempt = 0; attempt <= retries; attempt++) {
+      try {
+        const result = await model.generateContent(prompt);
+        const text = result.response.text();
+        if (modelIndex > 0) {
+          console.log(`Used fallback model: ${modelName}`);
+        }
+        return text
+          .replace(/```json\n?/g, "")
+          .replace(/```\n?/g, "")
+          .trim();
+      } catch (err: unknown) {
+        const status = (err as { status?: number }).status;
+
+        if (status === 404) {
+          console.log(`${modelName} not found (404), trying next model...`);
+          break;
+        }
+
+        if (status === 503) {
+          if (attempt < retries) {
+            const delay = 10000 * (attempt + 1);
+            console.log(`${modelName} 503, retrying in ${delay / 1000}s (attempt ${attempt + 1}/${retries})...`);
+            await new Promise(r => setTimeout(r, delay));
+            continue;
+          }
+          console.log(`${modelName} unavailable after ${retries + 1} attempts, trying next model...`);
+          break;
+        }
+
+        if (status === 429) {
+          // Check if daily quota exceeded — no point retrying this model
+          const details = (err as { errorDetails?: { "@type": string; violations?: { quotaMetric?: string; quotaId?: string }[]; retryDelay?: string }[] }).errorDetails ?? [];
+          const quotaFailure = details.find(d => d["@type"]?.includes("QuotaFailure"));
+          const isDaily = quotaFailure?.violations?.some(v => v.quotaId?.toLowerCase().includes("perday"));
+          if (isDaily) {
+            console.log(`${modelName} daily quota exceeded, trying next model...`);
+            break;
+          }
+          if (attempt < retries) {
+            const retryInfo = details.find(d => d["@type"]?.includes("RetryInfo"));
+            const retryDelaySec = retryInfo?.retryDelay ? parseInt(retryInfo.retryDelay) : 15;
+            const delay = Math.min(retryDelaySec * 1000, 60000);
+            console.log(`${modelName} rate limited, waiting ${delay / 1000}s (attempt ${attempt + 1}/${retries})...`);
+            await new Promise(r => setTimeout(r, delay));
+            continue;
+          }
+          console.log(`${modelName} rate limit retries exhausted, trying next model...`);
+          break;
+        }
+
+        throw err;
       }
-      throw err;
     }
   }
-  throw new Error("generateJSON: бүх оролдлого амжилтгүй");
+
+  throw new Error("generateJSON: бүх загвар ашиглах боломжгүй байна");
 }
 
 // Step 1a: Extract just chapter names (small response)
 async function extractChapterNames(
   subjectName: string,
-  text: string
+  text: string,
+  templateText: string
 ): Promise<string[]> {
-  const jsonStr = await generateJSON(`Чи 11-р ангийн "${subjectName}" хичээлийн багш. Доорх сурах бичгийн агуулгаас ЗӨВХӨН бүлгүүдийн нэрийг ялгаж гарга.
+  const jsonStr = await generateJSON(`Чи 11-р ангийн "${subjectName}" хичээлийн багш. Багшийн оруулсан ЗАГВАР ХӨТӨЛБӨРИЙН ЗААВРЫН ДАГУУ бүлгүүдийг ялгаж гарга.
 
-Сурах бичгийн агуулга:
-${truncateText(text)}
+============ ЗАГВАР ХӨТӨЛБӨР (ЗААВАЛ ДАГАХ) ============
+${truncateText(templateText, 4000)}
+=======================================================
+
+Сурах бичгийн агуулга (зөвхөн агуулга шалгахад):
+${truncateText(text, 4000)}
 
 ЗААВАР:
-- Номонд хэдэн бүлэг байгааг олж тогтоо.
-- Бүлэг бүрийн нэрийг МОНГОЛ КИРИЛЛ үсгээр зөв бичнэ.
-- Хэрэв текст гажигтай (латин үсгээр) харагдвал, утгыг нь тааж ЗӨӨВ МОНГОЛ хэлээр бичнэ.
-- Жишээ: "KBAAPAT TOPWATT" → "Квадрат тэгшитгэл"
+- ЗАГВАРТ заасан бүлгийн тоо, нэрлэх дүрэм, дугаарлалт, форматыг ЯГ дагаж мөрдөнө.
+- Хэрэв загварт тодорхой бүлгийн нэр заасан бол ҮҮНИЙГ ӨӨРЧЛӨХГҮЙ. Зөвхөн дутууг сурах бичгээс нөхнө.
+- Хэрэв загварт зөвхөн дүрэм/формат байгаа бол сурах бичгийн бүлгүүдийг тэр форматтай нийцүүлж бич.
+- Бүлгийн нэрийг МОНГОЛ КИРИЛЛ үсгээр зөв бичнэ.
 
 JSON формат:
 {
@@ -65,32 +116,36 @@ JSON формат:
 async function extractTopicsForChapters(
   subjectName: string,
   chapterNames: string[],
-  text: string
+  text: string,
+  templateText: string
 ): Promise<{ weekNumber: number; topicName: string; description: string; hours: number; chapterIndex: number }[]> {
   const chapterList = chapterNames.map((n, i) => `${i + 1}. ${n}`).join("\n");
 
-  const jsonStr = await generateJSON(`Чи 11-р ангийн "${subjectName}" хичээлийн багш. Дараах бүлгүүдийн сэдвүүдийг олж, БҮХ сэдвийг 10 долоо хоногт хуваарьла.
+  const jsonStr = await generateJSON(`Чи 11-р ангийн "${subjectName}" хичээлийн багш. Багшийн оруулсан ЗАГВАР ХӨТӨЛБӨРИЙН ЗААВРЫН ДАГУУ сэдвүүдийг хуваарьла.
+
+============ ЗАГВАР ХӨТӨЛБӨР (ЗААВАЛ ДАГАХ) ============
+${truncateText(templateText, 4000)}
+=======================================================
 
 Бүлгүүд:
 ${chapterList}
 
 Сурах бичгийн агуулга:
-${truncateText(text, 5000)}
+${truncateText(text, 4000)}
 
 ЗААВАР:
-- Бүлэг бүрийн сэдвүүдийг олж гаргана.
-- БҮХ бүлгийн бүх сэдвийг НИЙЛҮҮЛЭЭД 10 долоо хоногт хуваарьла (weekNumber: 1-10).
-- Бүлгүүд дарааллаар хуваарьлагдана.
-- chapterIndex нь 0-ээс эхэлнэ (0 = эхний бүлэг).
-- Сэдвийг МОНГОЛ КИРИЛЛ үсгээр зөв бичнэ.
-- Сэдэв бүрт 2 цаг өг.
+- ЗАГВАРТ заасан сэдвийн нэр, дугаарлалт, тайлбарын стиль, цагийн хуваарилалтыг ЯГ дагаж мөрдөнө.
+- Хэрэв загварт тухайн бүлгийн сэдвүүдийг тоочсон бол ҮҮНИЙГ ОРХИХГҮЙ ашиглана.
+- Хэрэв загвар зөвхөн ерөнхий формат заасан бол сурах бичгийн сэдвүүдээс түүж тэр формат руу буулга.
+- БҮХ сэдвийг 10 долоо хоногт хуваарьла (weekNumber: 1-10).
+- chapterIndex нь 0-ээс эхэлнэ.
+- Сэдэв бүрт цаг загварт заасны дагуу өг (заагаагүй бол 2 цаг).
 - Хариу БОГИНО байна. Тайлбар нь 5-10 үг.
 
 JSON формат:
 {
   "topics": [
-    { "weekNumber": 1, "topicName": "1.1 Сэдэв", "description": "Товч", "hours": 2, "chapterIndex": 0 },
-    { "weekNumber": 2, "topicName": "1.2 Сэдэв", "description": "Товч", "hours": 2, "chapterIndex": 0 }
+    { "weekNumber": 1, "topicName": "1.1 Сэдэв", "description": "Товч", "hours": 2, "chapterIndex": 0 }
   ]
 }`);
   const result = JSON.parse(jsonStr);
@@ -100,7 +155,8 @@ JSON формат:
 // Step 1: Full schedule extraction (two-step: chapters then topics)
 export async function extractSchedule(
   subjectName: string,
-  text: string
+  text: string,
+  templateText: string
 ): Promise<{
   chapters: {
     name: string;
@@ -108,14 +164,14 @@ export async function extractSchedule(
   }[];
 }> {
   // Step 1a: Get chapter names (small, reliable call)
-  const chapterNames = await extractChapterNames(subjectName, text);
+  const chapterNames = await extractChapterNames(subjectName, text, templateText);
 
   if (!chapterNames || chapterNames.length === 0) {
     return { chapters: [] };
   }
 
   // Step 1b: Get all topics distributed across 10 weeks
-  const allTopics = await extractTopicsForChapters(subjectName, chapterNames, text);
+  const allTopics = await extractTopicsForChapters(subjectName, chapterNames, text, templateText);
 
   // Group topics by chapter
   const chapters = chapterNames.map((name, index) => ({
@@ -134,7 +190,8 @@ export async function generateChapterPlan(
   subjectName: string,
   chapterName: string,
   topics: { weekNumber: number; topicName: string; description: string; hours: number }[],
-  text: string
+  text: string,
+  templateText: string
 ): Promise<{
   name: string;
   goal: string;
@@ -157,60 +214,58 @@ export async function generateChapterPlan(
 }> {
   const topicList = topics.map(t => `${t.weekNumber}-р долоо хоног: ${t.topicName}`).join(", ");
 
-  const jsonStr = await generateJSON(`Чи 11-р ангийн "${subjectName}" хичээлийн багш. "${chapterName}" бүлгээр нэгж хөтөлбөр бэлд.
+  const jsonStr = await generateJSON(`Чи 11-р ангийн "${subjectName}" хичээлийн багш. Багшийн оруулсан ЗАГВАР ХӨТӨЛБӨРИЙН ЗААВРЫН ДАГУУ "${chapterName}" бүлгээр нэгж хөтөлбөр бэлд.
+
+============ ЗАГВАР ХӨТӨЛБӨР (ЗААВАЛ ЯГ ЭНЭ ЗААВРААР БИЧИХ) ============
+${truncateText(templateText, 6000)}
+====================================================================
+
+ЯГ ДАГАХ ДҮРЭМ:
+1. Зорилго, зорилт, арга, хэрэглэгдэхүүн, хичээлийн үе шат, үнэлгээний шалгуурын БИЧИХ ХЭЛБЭР, ҮГИЙН СОНГОЛТ, ДЭЛГЭРЭНГҮЙН ТҮВШИНГ загвартай ЯГ адилхан болго.
+2. Загварт заасан үе шатны нэрс, цагийн хуваарь, аргын тоо, шалгуурын тоо болон хувийг ҮНДЭСНИЙ ЗААВАР гэж үзэн ДАГА.
+3. Загварт жишээ үг хэллэг (зорилго: "...", шалгуур: "...") байвал тэр стилийг хуулна.
+4. Загвараас ЗӨВХӨН тухайн бүлэгт хамаарах агуулгыг солино — хүрээ/бүтцийг битгий өөрчил.
+5. Загварт заагаагүй талбарыг өөрөө бөглөж болох ч, заасан талбарыг ӨӨРЧЛӨХИЙГ ХОРИГЛОНО.
 
 Энэ бүлгийн сэдвүүд: ${topicList}
 
-Сурах бичгийн холбогдох агуулга:
-${truncateText(text, 3000)}
+Сурах бичгийн холбогдох агуулга (зөвхөн агуулгыг бөглөхөд ашиглана):
+${truncateText(text, 2500)}
 
-Монгол хэлээр дэлгэрэнгүй бичнэ. Зөвхөн JSON:
+Монгол хэлээр бичнэ. Зөвхөн JSON формат:
 
 {
   "name": "Нэгж хөтөлбөр - ${chapterName}",
-  "goal": "Бүлгийн зорилго (2-3 өгүүлбэр, дэлгэрэнгүй)",
+  "goal": "Бүлгийн зорилго — ЗАГВАРЫН СТИЛИЙН ДАГУУ",
   "content": {
     "subject": "${subjectName}",
     "grade": "11-р анги",
     "chapter": "${chapterName}",
     "topicSchedule": ${JSON.stringify(topics)},
-    "duration": "80 минут (2 цаг)",
-    "goal": "Сурагчид энэ бүлгийн хүрээнд юу мэдэж, чаддаг болох (дэлгэрэнгүй)",
-    "objectives": [
-      "Мэдлэгийн зорилт: (дэлгэрэнгүй бичих)",
-      "Чадварын зорилт: (дэлгэрэнгүй бичих)",
-      "Хандлагын зорилт: (дэлгэрэнгүй бичих)"
-    ],
-    "lessonForm": "Лекц-семинар / Лаборатори гэх мэт",
-    "methods": ["Тайлбарлах арга", "Асуудал шийдвэрлэх арга", "Бүлгийн хэлэлцүүлэг", "Бие даасан ажил"],
-    "materials": ["Сурах бичиг", "Самбар", "Проектор", "Ажлын хуудас"],
+    "duration": "ЗАГВАРТ заасан хугацаа (заагаагүй бол 80 минут)",
+    "goal": "Хичээлийн зорилго — ЗАГВАРЫН СТИЛЭЭР",
+    "objectives": ["ЗАГВАРТ заасан тооны зорилт, тэр форматаар"],
+    "lessonForm": "ЗАГВАРТ заасан хичээлийн хэлбэр",
+    "methods": ["ЗАГВАРТ заасан аргуудыг ашиглана"],
+    "materials": ["ЗАГВАРТ заасан хэрэглэгдэхүүнийг ашиглана"],
     "steps": [
-      { "time": "5 мин", "phase": "Хичээлийн эхлэл", "teacherActivity": "(дэлгэрэнгүй)", "studentActivity": "(дэлгэрэнгүй)", "methods": "Асуулт-хариулт", "assessment": "Амаар" },
-      { "time": "25 мин", "phase": "Шинэ мэдлэг олгох", "teacherActivity": "(дэлгэрэнгүй)", "studentActivity": "(дэлгэрэнгүй)", "methods": "Лекц", "assessment": "Ажиглалт" },
-      { "time": "20 мин", "phase": "Бататгах / Дадлага", "teacherActivity": "(дэлгэрэнгүй)", "studentActivity": "(дэлгэрэнгүй)", "methods": "Бие даасан ажил", "assessment": "Даалгавар" },
-      { "time": "15 мин", "phase": "Чадвар хөгжүүлэх", "teacherActivity": "(дэлгэрэнгүй)", "studentActivity": "(дэлгэрэнгүй)", "methods": "Хэрэглээ", "assessment": "Бичгийн ажил" },
-      { "time": "10 мин", "phase": "Үнэлгээ / Дүгнэлт", "teacherActivity": "(дэлгэрэнгүй)", "studentActivity": "(дэлгэрэнгүй)", "methods": "Эргэцүүлэл", "assessment": "Өөрийн үнэлгээ" },
-      { "time": "5 мин", "phase": "Гэрийн даалгавар", "teacherActivity": "(тайлбарлах)", "studentActivity": "Тэмдэглэх", "methods": "", "assessment": "" }
+      { "time": "ЗАГВАРААС", "phase": "ЗАГВАРААС", "teacherActivity": "...", "studentActivity": "...", "methods": "...", "assessment": "..." }
     ],
-    "homework": "Гэрийн даалгаврын дэлгэрэнгүй тайлбар",
-    "reflection": "Хичээлийн эргэцүүлэл"
+    "homework": "ЗАГВАРЫН СТИЛЭЭР",
+    "reflection": "ЗАГВАРЫН СТИЛЭЭР"
   },
   "criteria": [
-    { "name": "Идэвхтэй оролцоо", "percentage": 10, "description": "Хичээлд идэвхтэй оролцох" },
-    { "name": "Даалгаврын гүйцэтгэл", "percentage": 30, "description": "Хичээл дээрх дадлага ажил" },
-    { "name": "Бие даасан ажил", "percentage": 20, "description": "Гэрийн даалгавар, реферат" },
-    { "name": "Явцын шалгалт", "percentage": 20, "description": "Бүлгийн шалгалт" },
-    { "name": "Улирлын шалгалт", "percentage": 20, "description": "Нэгдсэн шалгалт" }
+    { "name": "ЗАГВАРААС", "percentage": 0, "description": "ЗАГВАРААС" }
   ]
 }`);
   return JSON.parse(jsonStr);
 }
 
 // Legacy
-export async function generateCurriculum(subjectName: string, text: string) {
-  const schedule = await extractSchedule(subjectName, text);
+export async function generateCurriculum(subjectName: string, text: string, templateText: string) {
+  const schedule = await extractSchedule(subjectName, text, templateText);
   const ch = schedule.chapters[0];
-  const plan = await generateChapterPlan(subjectName, ch.name, ch.topics, text);
+  const plan = await generateChapterPlan(subjectName, ch.name, ch.topics, text, templateText);
   return { ...plan, weeks: 10 };
 }
 
@@ -236,6 +291,52 @@ ${truncateText(text)}
   }
 ]`);
   return JSON.parse(jsonStr);
+}
+
+// Chat: edit an existing curriculum or test JSON via natural-language instructions.
+// Returns: { reply, updated } — `updated` is the new full JSON, or null if no change.
+export async function editViaChat(
+  targetType: "curriculum" | "test",
+  currentJson: unknown,
+  history: { role: "user" | "assistant"; content: string }[],
+  userMessage: string
+): Promise<{ reply: string; updated: unknown | null }> {
+  const targetLabel =
+    targetType === "curriculum" ? "Нэгж хөтөлбөр (LessonPlan)" : "Тест (Test)";
+  const historyBlock =
+    history.length > 0
+      ? history
+          .slice(-8)
+          .map(m => (m.role === "user" ? `Багш: ${m.content}` : `AI: ${m.content}`))
+          .join("\n")
+      : "(Чат шинэ эхэлсэн)";
+
+  const jsonStr = await generateJSON(`Чи багшид нь хөтөлбөр/тест засахад туслах AI туслах. Доорх ${targetLabel}-ийг багшийн хүсэлтийн дагуу зас.
+
+============ ОДОО БАЙГАА АГУУЛГА (JSON) ============
+${JSON.stringify(currentJson, null, 2).slice(0, 8000)}
+====================================================
+
+Өмнөх чат:
+${historyBlock}
+
+Багшийн шинэ хүсэлт:
+${userMessage}
+
+ЗААВАР:
+- Багшийн хүсэлтийг ойлгож, зөвхөн хэрэгтэй талбарыг л өөрчилнө. БУСАД талбарыг ХЭВЭЭР үлдээнэ.
+- "updated" талбарт БҮТЭН шинэчилсэн объектыг (одоо байгаа схемийн дагуу) буцаа.
+- Хэрэв багш зөвхөн асуулт асуусан, эсвэл өөрчлөлт хэрэггүй гэсэн бол "updated" нь null байх ба "reply" дотор хариулна.
+- "reply" дотор юу өөрчилсөн, эсвэл асуултын хариуг 1-3 өгүүлбэрээр МОНГОЛ хэлээр товч бичнэ.
+- ID, subjectId, createdAt зэрэг систем талбарыг ӨӨРЧЛӨХГҮЙ.
+
+JSON формат (зөвхөн энэ):
+{
+  "reply": "Товч хариу/тайлбар",
+  "updated": { ... шинэчилсэн объект ... } | null
+}`);
+  const result = JSON.parse(jsonStr);
+  return { reply: result.reply || "", updated: result.updated ?? null };
 }
 
 export async function generateTestForTopic(

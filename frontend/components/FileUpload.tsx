@@ -83,91 +83,93 @@ export default function FileUpload({ subjectId, files, onFilesChange }: Props) {
 
   function getFileIcon(mimeType: string, fileName: string) {
     if (mimeType === "application/pdf" || fileName.endsWith(".pdf"))
-      return <div className="w-9 h-9 rounded-lg bg-red-50 flex items-center justify-center"><FileText size={18} className="text-red-500" /></div>;
+      return <FileText size={16} className="text-red-500 shrink-0" />;
     if (mimeType.startsWith("text/") || fileName.endsWith(".txt") || fileName.endsWith(".md"))
-      return <div className="w-9 h-9 rounded-lg bg-[var(--color-primary)]/10 flex items-center justify-center"><File size={18} className="text-[var(--color-primary)]" /></div>;
+      return <File size={16} className="text-[var(--color-primary)] shrink-0" />;
     if (mimeType.startsWith("image/"))
-      return <div className="w-9 h-9 rounded-lg bg-[var(--color-primary)]/10 flex items-center justify-center"><FileImage size={18} className="text-[var(--color-primary)]" /></div>;
+      return <FileImage size={16} className="text-[var(--color-primary)] shrink-0" />;
     if (fileName.endsWith(".doc") || fileName.endsWith(".docx"))
-      return <div className="w-9 h-9 rounded-lg bg-[var(--color-primary)]/10 flex items-center justify-center"><FileText size={18} className="text-[var(--color-primary)]" /></div>;
-    return <div className="w-9 h-9 rounded-lg bg-[var(--color-surface-alt)] flex items-center justify-center"><Paperclip size={18} className="text-[var(--color-text-muted)]" /></div>;
+      return <FileText size={16} className="text-[var(--color-primary)] shrink-0" />;
+    return <Paperclip size={16} className="text-[var(--color-text-muted)] shrink-0" />;
   }
 
   return (
-    <div>
-      {/* Drop zone */}
+    <div className="bg-[var(--color-surface)] rounded-lg border border-[var(--color-border)] p-3">
+      <h3 className="text-sm font-semibold text-[var(--color-text)] mb-2">
+         Сурах бичиг болон нэмэлт материалаа байршуулна уу (PDF, TXT, MD, DOC).
+      </h3>
+      <p className="text-xs text-[var(--color-text-secondary)] mb-3">
+        Сурах бичиг татах бол{" "}
+        <a
+          href="https://medle.mn/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-[var(--color-primary)] hover:underline font-medium"
+        >
+          medle.mn
+        </a>
+        {" "}дээр дарна уу.
+      </p>
+
+      <input
+        ref={inputRef}
+        type="file"
+        className="hidden"
+        accept=".pdf,.txt,.md,.doc,.docx"
+        multiple
+        onChange={(e) => {
+          if (e.target.files) handleFiles(e.target.files);
+          e.target.value = "";
+        }}
+      />
+
+      {/* Drop zone / file picker */}
       <div
-        className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors cursor-pointer ${
-          dragOver
-            ? "border-[var(--color-primary)] bg-[var(--color-primary)]/10"
-            : "border-[var(--color-border)] hover:border-[var(--color-primary)] hover:bg-[var(--color-primary)]/5"
-        }`}
         onDragOver={(e) => {
           e.preventDefault();
           setDragOver(true);
         }}
         onDragLeave={() => setDragOver(false)}
         onDrop={handleDrop}
-        onClick={() => inputRef.current?.click()}
+        onClick={() => !uploading && inputRef.current?.click()}
+        className={`flex items-center justify-center gap-2 border-2 border-dashed rounded-md px-3 py-3 text-sm cursor-pointer transition-colors ${
+          dragOver
+            ? "border-[var(--color-primary)] bg-[var(--color-primary)]/10"
+            : "border-[var(--color-border)] hover:border-[var(--color-primary)] hover:bg-[var(--color-primary)]/5"
+        } ${uploading ? "opacity-50 pointer-events-none" : ""} text-[var(--color-text-secondary)]`}
       >
-        <input
-          ref={inputRef}
-          type="file"
-          className="hidden"
-          accept=".pdf,.txt,.md,.doc,.docx"
-          multiple
-          onChange={(e) => {
-            if (e.target.files) handleFiles(e.target.files);
-            e.target.value = "";
-          }}
-        />
         {uploading ? (
-          <div>
-            <div className="animate-spin w-8 h-8 border-3 border-[var(--color-primary)] border-t-transparent rounded-full mx-auto mb-3" />
-            <p className="text-sm text-[var(--color-primary)] font-medium">
-              Файл байршуулж байна...
-            </p>
-          </div>
+          <>
+            <div className="animate-spin w-4 h-4 border-2 border-[var(--color-primary)] border-t-transparent rounded-full" />
+            <span>Файл байршуулж байна...</span>
+          </>
         ) : (
           <>
-            <div className="w-14 h-14 rounded-2xl bg-[var(--color-primary)]/10 flex items-center justify-center mx-auto mb-3">
-              <Upload size={28} className="text-[var(--color-primary)]" />
-            </div>
-            <p className="text-sm font-medium text-[var(--color-text)]">
-              PDF, TXT файлаа энд чирж оруулна уу
-            </p>
-            <p className="text-xs text-[var(--color-text-muted)] mt-1">
-              эсвэл энд дарж файл сонгоно уу
-            </p>
+            
+            <span>📤 Файл сонгох эсвэл чирж оруулах</span>
           </>
         )}
       </div>
 
-      {/* File list */}
+      {/* File list as chips */}
       {files.length > 0 && (
-        <div className="mt-4 space-y-2">
+        <div className="mt-3 space-y-2">
           {files.map((f) => (
             <div
               key={f.id}
-              className="flex items-center justify-between bg-[var(--color-surface)] rounded-lg border border-[var(--color-border)] px-4 py-3"
+              className="flex items-center gap-2 bg-[var(--color-primary)]/10 border border-[var(--color-primary)]/20 rounded-md px-3 py-2"
             >
-              <div className="flex items-center gap-3">
-                {getFileIcon(f.mimeType, f.fileName)}
-                <div>
-                  <p className="text-sm font-medium text-[var(--color-text)]">
-                    {f.fileName}
-                  </p>
-                  <p className="text-xs text-[var(--color-text-muted)]">
-                    {formatSize(f.fileSize)}
-                  </p>
-                </div>
+              {getFileIcon(f.mimeType, f.fileName)}
+              <div className="flex-1 min-w-0">
+                <p className="text-sm text-[var(--color-text)] truncate">{f.fileName}</p>
+                <p className="text-xs text-[var(--color-text-muted)]">{formatSize(f.fileSize)}</p>
               </div>
               <button
                 onClick={() => handleDelete(f.id)}
-                className="text-[var(--color-text-muted)] hover:text-red-500 p-1.5 rounded-lg hover:bg-red-50 transition-colors"
+                className="ml-auto text-xs text-red-500 hover:text-red-700 flex items-center gap-1"
                 title="Устгах"
               >
-                <Trash2 size={16} />
+                <Trash2 size={14} /> Хасах
               </button>
             </div>
           ))}

@@ -1,11 +1,45 @@
 import { NextRequest, NextResponse } from "next/server";
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const pdfParse = require("pdf-parse/lib/pdf-parse");
 import { getCombinedText } from "@/backend/lib/files";
 import { extractSchedule, generateChapterPlan } from "@/backend/lib/ai";
 import { subjects } from "@/shared/subjects";
 
+async function fetchTemplateText(url: string): Promise<string> {
+  const res = await fetch(url, {
+    headers: { "User-Agent": "Mozilla/5.0 EducationSystem" },
+    signal: AbortSignal.timeout(20000),
+  });
+  if (!res.ok) throw new Error(`Загвар татахад алдаа: ${res.status}`);
+
+  const contentType = res.headers.get("content-type") || "";
+  const buffer = Buffer.from(await res.arrayBuffer());
+
+  if (contentType.includes("application/pdf") || url.toLowerCase().endsWith(".pdf")) {
+    const data = await pdfParse(buffer);
+    return data.text || "";
+  }
+
+  const html = buffer.toString("utf-8");
+  if (contentType.includes("text/html") || /<html/i.test(html)) {
+    return html
+      .replace(/<script[\s\S]*?<\/script>/gi, "")
+      .replace(/<style[\s\S]*?<\/style>/gi, "")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/&nbsp;/g, " ")
+      .replace(/&amp;/g, "&")
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  return html;
+}
+
 export async function POST(req: NextRequest) {
   try {
-    const { subjectId } = await req.json();
+    const { subjectId, templateUrl, templateText: templateTextInput } = await req.json();
     if (!subjectId) {
       return NextResponse.json({ error: "subjectId шаардлагатай" }, { status: 400 });
     }
@@ -20,14 +54,39 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Эхлээд PDF файл байршуулна уу" }, { status: 400 });
     }
 
+    // Template is REQUIRED — AI follows the teacher's curriculum guide strictly.
+    let templateText: string | undefined;
+    if (templateUrl?.trim()) {
+      try {
+        templateText = await fetchTemplateText(templateUrl.trim());
+      } catch (err) {
+        return NextResponse.json(
+          { error: "Загвар татаж чадсангүй: " + (err as Error).message },
+          { status: 400 }
+        );
+      }
+    } else if (templateTextInput?.trim()) {
+      templateText = templateTextInput.trim();
+    }
+
+    if (!templateText || !templateText.trim()) {
+      return NextResponse.json(
+        {
+          error:
+            "Загвар хөтөлбөр шаардлагатай. Нэгж хөтөлбөрийн загвар (PDF/DOCX/TXT) оруулна уу — AI таны зааврын дагуу хөтөлбөр үүсгэнэ.",
+        },
+        { status: 400 }
+      );
+    }
+
     // Step 1: Extract schedule (chapters + topics distributed across 10 weeks)
     let schedule;
     try {
-      schedule = await extractSchedule(subject.name, text);
+      schedule = await extractSchedule(subject.name, text, templateText);
     } catch (err) {
       console.error("First extractSchedule attempt failed, retrying...", err);
       // Retry once
-      schedule = await extractSchedule(subject.name, text);
+      schedule = await extractSchedule(subject.name, text, templateText);
     }
 
     if (!schedule.chapters || schedule.chapters.length === 0) {
@@ -38,7 +97,7 @@ export async function POST(req: NextRequest) {
     const plans = [];
     for (const ch of schedule.chapters) {
       try {
-        const plan = await generateChapterPlan(subject.name, ch.name, ch.topics, text);
+        const plan = await generateChapterPlan(subject.name, ch.name, ch.topics, text, templateText);
         // Ensure name is never empty
         if (!plan.name || !plan.name.trim()) {
           plan.name = `Нэгж хөтөлбөр - ${ch.name}`;

@@ -62,16 +62,32 @@ export default function TopicsTab({ subjectId, topics, onUpdate }: Props) {
     onUpdate();
   }
 
+  function removeAll() {
+    if (!confirm(`Бүх ${topics.length} сэдвийг устгах уу?`)) return;
+    topics.forEach(t => store.deleteTopic(t.id));
+    onUpdate();
+  }
+
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-semibold text-[var(--color-text)]">Сэдвүүд</h2>
-        <button
-          onClick={openNew}
-          className="bg-[var(--color-primary)] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--color-primary-dark)] transition-colors"
-        >
-          + Сэдэв нэмэх
-        </button>
+        <div className="flex gap-2">
+          {topics.length > 0 && (
+            <button
+              onClick={removeAll}
+              className="bg-red-50 text-red-600 px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-100 transition-colors"
+            >
+              Бүгдийг устгах
+            </button>
+          )}
+          <button
+            onClick={openNew}
+            className="bg-[var(--color-primary)] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--color-primary-dark)] transition-colors"
+          >
+            + Сэдэв нэмэх
+          </button>
+        </div>
       </div>
 
       {/* Form */}

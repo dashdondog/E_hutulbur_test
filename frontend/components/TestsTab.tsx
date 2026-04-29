@@ -130,6 +130,14 @@ export default function TestsTab({ subjectId, topics, tests, onUpdate }: Props) 
     onUpdate();
   }
 
+  function removeAll() {
+    const count = filteredTests.length;
+    const label = selectedTopicFilter === "all" ? `${count} тест` : `шүүсэн ${count} тест`;
+    if (!confirm(`Бүх ${label}-ийг устгах уу?`)) return;
+    filteredTests.forEach(t => store.deleteTest(t.id));
+    onUpdate();
+  }
+
   return (
     <div>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-0 mb-4">
@@ -148,6 +156,14 @@ export default function TestsTab({ subjectId, topics, tests, onUpdate }: Props) 
               </option>
             ))}
           </select>
+          {filteredTests.length > 0 && (
+            <button
+              onClick={removeAll}
+              className="bg-red-50 text-red-600 px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-100 transition-colors"
+            >
+              Бүгдийг устгах
+            </button>
+          )}
           <button
             onClick={openNew}
             disabled={topics.length === 0}

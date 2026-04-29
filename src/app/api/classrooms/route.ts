@@ -4,49 +4,54 @@ import { getAuthUser } from "@/backend/lib/auth";
 import crypto from "crypto";
 
 export async function GET() {
-  const user = await getAuthUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  try {
+    const user = await getAuthUser();
+    if (!user) return NextResponse.json({ classrooms: [], error: "Unauthorized" }, { status: 401 });
 
-  const db = await getDb();
+    const db = await getDb();
 
-  if (user.role === "teacher") {
-    const classrooms = await db.collection("classrooms")
-      .find({ teacherId: user.userId })
-      .sort({ createdAt: -1 })
-      .toArray();
+    if (user.role === "teacher") {
+      const classrooms = await db.collection("classrooms")
+        .find({ teacherId: user.userId })
+        .sort({ createdAt: -1 })
+        .toArray();
 
-    // Get member counts
-    const result = await Promise.all(
-      classrooms.map(async (c) => {
-        const memberCount = await db.collection("classroomMembers").countDocuments({ classroomId: c._id!.toString() });
-        return { ...c, memberCount };
-      })
+      const result = await Promise.all(
+        classrooms.map(async (c) => {
+          const memberCount = await db.collection("classroomMembers").countDocuments({ classroomId: c._id!.toString() });
+          return { ...c, memberCount };
+        })
+      );
+
+      return NextResponse.json({ classrooms: result });
+    } else {
+      const memberships = await db.collection("classroomMembers")
+        .find({ userId: user.userId })
+        .toArray();
+
+      const classroomIds = memberships.map((m) => m.classroomId);
+      if (classroomIds.length === 0) return NextResponse.json({ classrooms: [] });
+
+      const { ObjectId } = await import("mongodb");
+      const classrooms = await db.collection("classrooms")
+        .find({ _id: { $in: classroomIds.map((id) => new ObjectId(id)) } })
+        .toArray();
+
+      const result = await Promise.all(
+        classrooms.map(async (c) => {
+          const assignmentCount = await db.collection("assignments").countDocuments({ classroomId: c._id!.toString() });
+          return { ...c, assignmentCount };
+        })
+      );
+
+      return NextResponse.json({ classrooms: result });
+    }
+  } catch (err) {
+    console.error("GET /api/classrooms failed:", err);
+    return NextResponse.json(
+      { classrooms: [], error: "Анги ачаалж чадсангүй: " + (err as Error).message },
+      { status: 500 }
     );
-
-    return NextResponse.json({ classrooms: result });
-  } else {
-    // Student: get classrooms they joined
-    const memberships = await db.collection("classroomMembers")
-      .find({ userId: user.userId })
-      .toArray();
-
-    const classroomIds = memberships.map((m) => m.classroomId);
-    if (classroomIds.length === 0) return NextResponse.json({ classrooms: [] });
-
-    const { ObjectId } = await import("mongodb");
-    const classrooms = await db.collection("classrooms")
-      .find({ _id: { $in: classroomIds.map((id) => new ObjectId(id)) } })
-      .toArray();
-
-    // Get assignment counts
-    const result = await Promise.all(
-      classrooms.map(async (c) => {
-        const assignmentCount = await db.collection("assignments").countDocuments({ classroomId: c._id!.toString() });
-        return { ...c, assignmentCount };
-      })
-    );
-
-    return NextResponse.json({ classrooms: result });
   }
 }
 

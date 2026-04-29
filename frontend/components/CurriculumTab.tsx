@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { Curriculum, LessonPlan, LessonStep, CriteriaItem, TopicWeek } from "@/shared/types";
 import * as store from "@/frontend/lib/store";
 import { downloadLessonPlanPdf } from "@/frontend/lib/generatePdf";
+import ChatTab from "@/frontend/components/ChatTab";
 
 interface Props {
   subjectId: string;
@@ -89,25 +90,72 @@ export default function CurriculumTab({ subjectId, curricula, onUpdate }: Props)
   const [form, setForm] = useState<EditForm>(emptyForm());
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  function openNew() { setForm(emptyForm()); setEditId(null); setShowForm(true); }
-  function openEdit(c: Curriculum) { setForm(curriculumToForm(c)); setEditId(c.id); setShowForm(true); }
+  const openNew = useCallback(() => { setForm(emptyForm()); setEditId(null); setShowForm(true); }, []);
+  const openEdit = useCallback((c: Curriculum) => { setForm(curriculumToForm(c)); setEditId(c.id); setShowForm(true); }, []);
 
-  function save() {
+  const save = useCallback(() => {
     if (!form.name.trim()) return;
     const curriculum = formToCurriculum(form, editId || crypto.randomUUID(), subjectId,
       editId ? curricula.find(c => c.id === editId)!.createdAt : new Date().toISOString());
     store.saveCurriculum(curriculum);
     setShowForm(false); setForm(emptyForm()); setEditId(null); onUpdate();
-  }
+  }, [form, editId, subjectId, curricula, onUpdate]);
 
-  function remove(id: string) { if (!confirm("Устгах уу?")) return; store.deleteCurriculum(id); onUpdate(); }
-
-  function handleDownloadPdf(c: Curriculum) {
+  const remove = useCallback((id: string) => { if (!confirm("Устгах уу?")) return; store.deleteCurriculum(id); onUpdate(); }, [onUpdate]);
+  const handleDownloadPdf = useCallback((c: Curriculum) => {
     if (isLessonPlan(c.content)) downloadLessonPlanPdf(c.content, isCriteriaArray(c.criteria) ? c.criteria : undefined);
-  }
+  }, []);
 
-  function updateArr<T>(arr: T[], i: number, val: T): T[] { const n = [...arr]; n[i] = val; return n; }
-  function removeArr<T>(arr: T[], i: number): T[] { return arr.filter((_, idx) => idx !== i); }
+  // Memoized helpers
+  const updateArr = useCallback(<T,>(arr: T[], i: number, val: T): T[] => {
+    if (arr[i] === val) return arr;
+    const n = [...arr];
+    n[i] = val;
+    return n;
+  }, []);
+  const removeArr = useCallback(<T,>(arr: T[], i: number): T[] => {
+    if (i < 0 || i >= arr.length) return arr;
+    return arr.filter((_, idx) => idx !== i);
+  }, []);
+
+  // Memoized form change handlers to avoid recreating objects on every render
+  const setName = useCallback((v: string) => setForm(f => ({ ...f, name: v })), []);
+  const setChapter = useCallback((v: string) => setForm(f => ({ ...f, chapter: v })), []);
+  const setGoal = useCallback((v: string) => setForm(f => ({ ...f, goal: v })), []);
+  const setPlanGoal = useCallback((v: string) => setForm(f => ({ ...f, planGoal: v })), []);
+  const setLessonForm = useCallback((v: string) => setForm(f => ({ ...f, lessonForm: v })), []);
+  const setDuration = useCallback((v: string) => setForm(f => ({ ...f, duration: v })), []);
+  const setHomework = useCallback((v: string) => setForm(f => ({ ...f, homework: v })), []);
+  const setReflection = useCallback((v: string) => setForm(f => ({ ...f, reflection: v })), []);
+
+  // Array field handlers
+  const updateTopicSchedule = useCallback((i: number, field: keyof TopicWeek, value: string | number) => {
+    setForm(f => ({
+      ...f,
+      topicSchedule: f.topicSchedule.map((t, idx) => idx === i ? { ...t, [field]: value } : t)
+    }));
+  }, []);
+  const addObjective = useCallback(() => setForm(f => ({ ...f, objectives: [...f.objectives, ""] })), []);
+  const updateObjective = useCallback((i: number, v: string) => {
+    setForm(f => ({ ...f, objectives: f.objectives.map((o, idx) => idx === i ? v : o) }));
+  }, []);
+  const removeObjective = useCallback((i: number) => {
+    setForm(f => ({ ...f, objectives: f.objectives.filter((_, idx) => idx !== i) }));
+  }, []);
+  const addMethod = useCallback(() => setForm(f => ({ ...f, methods: [...f.methods, ""] })), []);
+  const updateMethod = useCallback((i: number, v: string) => {
+    setForm(f => ({ ...f, methods: f.methods.map((m, idx) => idx === i ? v : m) }));
+  }, []);
+  const removeMethod = useCallback((i: number) => {
+    setForm(f => ({ ...f, methods: f.methods.filter((_, idx) => idx !== i) }));
+  }, []);
+  const addMaterial = useCallback(() => setForm(f => ({ ...f, materials: [...f.materials, ""] })), []);
+  const updateMaterial = useCallback((i: number, v: string) => {
+    setForm(f => ({ ...f, materials: f.materials.map((m, idx) => idx === i ? v : m) }));
+  }, []);
+  const removeMaterial = useCallback((i: number) => {
+    setForm(f => ({ ...f, materials: f.materials.filter((_, idx) => idx !== i) }));
+  }, []);
 
   return (
     <div>
@@ -130,13 +178,13 @@ export default function CurriculumTab({ subjectId, curricula, onUpdate }: Props)
           <h3 className="text-base font-semibold">{editId ? "Хөтөлбөр засах" : "Шинэ хөтөлбөр"}</h3>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div><Label>Нэр</Label><Input value={form.name} onChange={v => setForm({ ...form, name: v })} placeholder="Нэгж хөтөлбөр - Бүлэг 1. Механик" /></div>
-            <div><Label>Бүлэг</Label><Input value={form.chapter} onChange={v => setForm({ ...form, chapter: v })} placeholder="Бүлэг 1. Механик" /></div>
+            <div><Label>Нэр</Label><Input value={form.name} onChange={setName} placeholder="Нэгж хөтөлбөр - Бүлэг 1. Механик" /></div>
+            <div><Label>Бүлэг</Label><Input value={form.chapter} onChange={setChapter} placeholder="Бүлэг 1. Механик" /></div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div><Label>Хөтөлбөрийн зорилго</Label><TextArea value={form.goal} onChange={v => setForm({ ...form, goal: v })} rows={2} placeholder="Ерөнхий зорилго..." /></div>
-            <div><Label>Хичээлийн зорилго</Label><TextArea value={form.planGoal} onChange={v => setForm({ ...form, planGoal: v })} rows={2} placeholder="Сурагчид юу мэдэж, чаддаг болох..." /></div>
+            <div><Label>Хөтөлбөрийн зорилго</Label><TextArea value={form.goal} onChange={setGoal} rows={2} placeholder="Ерөнхий зорилго..." /></div>
+            <div><Label>Хичээлийн зорилго</Label><TextArea value={form.planGoal} onChange={setPlanGoal} rows={2} placeholder="Сурагчид юу мэдэж, чаддаг болох..." /></div>
           </div>
 
           {/* Topic Schedule - 10 week plan */}
@@ -281,6 +329,30 @@ export default function CurriculumTab({ subjectId, curricula, onUpdate }: Props)
             <button onClick={() => setForm({ ...form, criteria: [...form.criteria, { name: "", percentage: 0, description: "" }] })}
               className="text-[var(--color-primary)] text-xs font-medium mt-1">+ Шалгуур нэмэх</button>
           </div>
+
+          {/* Inline AI chat — applies edits straight into the form. Only when editing an existing curriculum. */}
+          {editId && (() => {
+            const editing = curricula.find(c => c.id === editId);
+            if (!editing) return null;
+            const liveTarget = formToCurriculum(form, editing.id, editing.subjectId, editing.createdAt);
+            return (
+              <div className="pt-2">
+                <ChatTab
+                  curricula={[]}
+                  tests={[]}
+                  onUpdate={() => {}}
+                  fixedTarget={liveTarget}
+                  fixedTargetType="curriculum"
+                  compact
+                  onApply={(updated) => {
+                    setForm(curriculumToForm(updated as Curriculum));
+                    store.saveCurriculum(updated as Curriculum);
+                    onUpdate();
+                  }}
+                />
+              </div>
+            );
+          })()}
 
           <div className="flex gap-2 pt-2">
             <button onClick={save} className="bg-[var(--color-primary)] text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-[var(--color-primary-dark)]">Хадгалах</button>
