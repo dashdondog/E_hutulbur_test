@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Хичээл олдсонгүй" }, { status: 404 });
     }
 
-    const text = getCombinedText(subjectId);
+    const text = await getCombinedText(subjectId);
     if (!text.trim()) {
       return NextResponse.json(
         { error: "Эхлээд PDF файл байршуулна уу" },

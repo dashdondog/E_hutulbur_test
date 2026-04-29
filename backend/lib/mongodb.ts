@@ -25,6 +25,8 @@ async function ensureIndexes(db: Db): Promise<void> {
       db.collection("classroomMembers").createIndex({ userId: 1 }),
       db.collection("classroomMembers").createIndex({ classroomId: 1, userId: 1 }, { unique: true }),
       db.collection("assignments").createIndex({ classroomId: 1, deadline: -1 }),
+      db.collection("subjectFiles").createIndex({ subjectId: 1, uploadedAt: -1 }),
+      db.collection("subjectFiles").createIndex({ id: 1 }, { unique: true }),
     ]);
   } catch (err) {
     // Index creation must not block requests if it fails (e.g. duplicate races).
