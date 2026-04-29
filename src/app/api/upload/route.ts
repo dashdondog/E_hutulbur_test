@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const pdf = require("pdf-parse/lib/pdf-parse");
 import {
   saveFileWithText,
   getFilesBySubject,
@@ -8,66 +6,45 @@ import {
   UploadedFile,
 } from "@/backend/lib/files";
 
-// Pure-JS PDF text extraction. No native binaries — Vercel-compatible.
-// Returns empty string if pdf-parse fails or returns trivially short text.
-async function extractPdfText(pdfBuffer: Buffer): Promise<string> {
-  try {
-    const pdfData = await pdf(pdfBuffer);
-    if (pdfData.text && pdfData.text.trim().length > 100) {
-      return pdfData.text;
-    }
-  } catch {
-    // fall through to empty
-  }
-  return "";
-}
-
+// Client extracts PDF text in the browser and posts JSON. Server only persists
+// metadata + text — the binary never crosses the wire, side-stepping Vercel's
+// 4.5MB body cap on textbook-sized PDFs.
 export async function POST(req: NextRequest) {
   try {
-    const formData = await req.formData();
-    const file = formData.get("file") as File | null;
-    const subjectId = formData.get("subjectId") as string;
+    const body = await req.json();
+    const { subjectId, fileName, fileSize, mimeType, extractedText } = body as {
+      subjectId?: string;
+      fileName?: string;
+      fileSize?: number;
+      mimeType?: string;
+      extractedText?: string;
+    };
 
-    if (!file || !subjectId) {
+    if (!subjectId || !fileName) {
       return NextResponse.json(
-        { error: "file болон subjectId шаардлагатай" },
+        { error: "subjectId болон fileName шаардлагатай" },
         { status: 400 }
       );
     }
 
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const fileId = crypto.randomUUID();
-
-    let extractedText = "";
-    if (file.type === "application/pdf" || file.name.endsWith(".pdf")) {
-      extractedText = await extractPdfText(buffer);
-    } else if (
-      file.type === "text/plain" ||
-      file.name.endsWith(".txt") ||
-      file.name.endsWith(".md")
-    ) {
-      extractedText = buffer.toString("utf-8");
-    } else {
-      extractedText = `[Файл: ${file.name} - текст гаргаж авах боломжгүй файлын төрөл]`;
-    }
-
     const fileMeta: UploadedFile = {
-      id: fileId,
+      id: crypto.randomUUID(),
       subjectId,
-      fileName: file.name,
-      fileSize: file.size,
-      mimeType: file.type,
+      fileName,
+      fileSize: fileSize ?? 0,
+      mimeType: mimeType ?? "",
       uploadedAt: new Date().toISOString(),
     };
-    await saveFileWithText(fileMeta, extractedText);
+    const text = extractedText ?? "";
+    await saveFileWithText(fileMeta, text);
 
     return NextResponse.json({
       success: true,
       file: fileMeta,
-      textLength: extractedText.length,
-      warning: extractedText.trim()
+      textLength: text.length,
+      warning: text.trim()
         ? undefined
-        : "PDF-ээс текст гаргаж авч чадсангүй. Файлыг дахин байршуулна уу.",
+        : "Файлаас текст гаргаж авч чадсангүй. Файлыг дахин байршуулна уу.",
     });
   } catch (error) {
     console.error("Upload error:", error);

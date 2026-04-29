@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback } from "react";
 import { Upload, FileText, FileImage, File, Paperclip, Trash2 } from "lucide-react";
+import { extractPdfTextInBrowser } from "@/frontend/lib/extractPdfText";
 
 interface UploadedFile {
   id: string;
@@ -32,13 +33,37 @@ export default function FileUpload({ subjectId, files, onFilesChange }: Props) {
     async (file: File) => {
       setUploading(true);
       try {
-        const formData = new FormData();
-        formData.append("file", file);
-        formData.append("subjectId", subjectId);
+        // Extract text in the browser so we never send the PDF binary up.
+        // Vercel caps request bodies at 4.5MB; textbook PDFs blow past that.
+        let extractedText = "";
+        const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+        const isText =
+          file.type === "text/plain" ||
+          /\.(txt|md)$/i.test(file.name);
+
+        if (isPdf) {
+          try {
+            extractedText = await extractPdfTextInBrowser(file);
+          } catch (e) {
+            alert("PDF-ээс текст гаргаж чадсангүй: " + (e as Error).message);
+            return;
+          }
+        } else if (isText) {
+          extractedText = await file.text();
+        } else {
+          extractedText = `[Файл: ${file.name} - текст гаргаж авах боломжгүй файлын төрөл]`;
+        }
 
         const res = await fetch("/api/upload", {
           method: "POST",
-          body: formData,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            subjectId,
+            fileName: file.name,
+            fileSize: file.size,
+            mimeType: file.type,
+            extractedText,
+          }),
         });
 
         if (!res.ok) {
@@ -48,8 +73,8 @@ export default function FileUpload({ subjectId, files, onFilesChange }: Props) {
         }
 
         onFilesChange();
-      } catch {
-        alert("Файл байршуулахад алдаа гарлаа");
+      } catch (e) {
+        alert("Файл байршуулахад алдаа гарлаа: " + (e as Error).message);
       } finally {
         setUploading(false);
       }
