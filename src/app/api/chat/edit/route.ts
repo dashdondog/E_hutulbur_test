@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { editViaChat } from "@/backend/lib/ai";
+import { getAuthUser } from "@/backend/lib/auth";
 
 export async function POST(req: NextRequest) {
   try {
+    const user = await getAuthUser();
+    if (!user || (user.role !== "teacher" && user.role !== "admin")) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const {
       targetType,
       target,

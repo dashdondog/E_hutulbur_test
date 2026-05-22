@@ -8,8 +8,18 @@ export async function extractPdfTextInBrowser(file: File): Promise<string> {
   // pdfjs-dist build. Avoids bundler-specific worker-import syntax.
   pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
+  // cMaps + standard fonts are required for Cyrillic/CJK PDFs that use
+  // CID-keyed fonts. Without them pdfjs returns raw glyph codes, producing
+  // mojibake like "¯ëāðýýñ" instead of "Аливаа".
+  const assetBase = `https://unpkg.com/pdfjs-dist@${pdfjs.version}`;
+
   const buffer = await file.arrayBuffer();
-  const doc = await pdfjs.getDocument({ data: buffer }).promise;
+  const doc = await pdfjs.getDocument({
+    data: buffer,
+    cMapUrl: `${assetBase}/cmaps/`,
+    cMapPacked: true,
+    standardFontDataUrl: `${assetBase}/standard_fonts/`,
+  }).promise;
 
   const pages: string[] = [];
   for (let i = 1; i <= doc.numPages; i++) {

@@ -1,38 +1,35 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/frontend/lib/auth-context";
-import { useRouter } from "next/navigation";
-import { Eye, EyeOff, ArrowLeft, GraduationCap, BookOpen } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Eye, EyeOff, ArrowLeft, GraduationCap, BookOpen, ShieldCheck } from "lucide-react";
 
 export default function LoginPage() {
   const { login } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
 
-  const [step, setStep] = useState<"intro" | "login">("intro");
+  const [step, setStep] = useState<"intro" | "login" | "admin-register">("intro");
   const [role, setRole] = useState<"teacher" | "student" | null>(null);
-  // "login" | "register" — зөвхөн багшид хамаарна
-  const [mode, setMode] = useState<"login" | "register">("login");
 
-  // login fields
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
-  // register fields
-  const [regName, setRegName] = useState("");
-  const [regEmail, setRegEmail] = useState("");
-  const [regPassword, setRegPassword] = useState("");
-  const [regConfirm, setRegConfirm] = useState("");
-  const [showRegPassword, setShowRegPassword] = useState(false);
-  const [showRegConfirm, setShowRegConfirm] = useState(false);
+  const [adminName, setAdminName] = useState("");
+  const [adminSecret, setAdminSecret] = useState("");
 
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  // Hidden gate: /login?admin=1 jumps straight to admin registration.
+  useEffect(() => {
+    if (searchParams.get("admin") === "1") setStep("admin-register");
+  }, [searchParams]);
+
   function selectRole(r: "teacher" | "student") {
     setRole(r);
-    setMode("login");
     setStep("login");
     setError("");
   }
@@ -41,12 +38,6 @@ export default function LoginPage() {
     setStep("intro");
     setError("");
     setEmail(""); setPassword("");
-    setRegName(""); setRegEmail(""); setRegPassword(""); setRegConfirm("");
-  }
-
-  function switchMode(m: "login" | "register") {
-    setMode(m);
-    setError("");
   }
 
   async function handleLogin(e: React.FormEvent) {
@@ -68,29 +59,27 @@ export default function LoginPage() {
     }
   }
 
-  async function handleRegister(e: React.FormEvent) {
+  async function handleAdminRegister(e: React.FormEvent) {
     e.preventDefault();
     setError("");
-    if (regPassword !== regConfirm) {
-      setError("Нууц үг таарахгүй байна");
-      return;
-    }
-    if (regPassword.length < 6) {
-      setError("Нууц үг хамгийн багадаа 6 тэмдэгт байх ёстой");
-      return;
-    }
     setLoading(true);
     try {
       const res = await fetch("/api/auth/register", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: regName, email: regEmail, password: regPassword, role: "teacher" }),
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-secret": adminSecret,
+        },
+        body: JSON.stringify({
+          name: adminName,
+          email,
+          password,
+          role: "admin",
+        }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Бүртгэл амжилтгүй");
-      // auto login after register
-      await login(regEmail, regPassword);
-      router.push("/");
+      if (!res.ok) throw new Error(data.error || "Бүртгэлд алдаа гарлаа");
+      router.push("/admin");
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -152,7 +141,7 @@ export default function LoginPage() {
             </div>
           )}
 
-          {/* ── Step 2: Teacher or Student form ── */}
+          {/* ── Step 2: Login form ── */}
           {step === "login" && (
             <div>
               {/* Header stripe */}
@@ -172,158 +161,149 @@ export default function LoginPage() {
                   </div>
                   <div>
                     <p className="font-semibold text-white">
-                      {role === "teacher"
-                        ? (mode === "login" ? "Багшийн нэвтрэлт" : "Багшийн бүртгэл")
-                        : "Сурагчийн нэвтрэлт"}
+                      {role === "teacher" ? "Багшийн нэвтрэлт" : "Сурагчийн нэвтрэлт"}
                     </p>
                     <p className="text-xs text-white/70">
                       {role === "teacher"
-                        ? (mode === "login" ? "Имэйлээрээ нэвтэрнэ үү" : "Шинэ бүртгэл үүсгэнэ үү")
+                        ? "Админаас авсан имэйл, нууц үгээрээ нэвтэрнэ үү"
                         : "Багшаас авсан кодоороо нэвтэрнэ үү"}
                     </p>
                   </div>
                 </div>
-
-                {/* Login / Register tabs — teacher only */}
-                {role === "teacher" && (
-                  <div className="flex gap-1 mt-4 bg-white/10 rounded-lg p-1">
-                    <button
-                      onClick={() => switchMode("login")}
-                      className={`flex-1 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                        mode === "login" ? "bg-white text-[var(--color-primary)]" : "text-white/80 hover:text-white"
-                      }`}
-                    >
-                      Нэвтрэх
-                    </button>
-                    <button
-                      onClick={() => switchMode("register")}
-                      className={`flex-1 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                        mode === "register" ? "bg-white text-[var(--color-primary)]" : "text-white/80 hover:text-white"
-                      }`}
-                    >
-                      Бүртгүүлэх
-                    </button>
-                  </div>
-                )}
               </div>
 
-              {/* ── Login form ── */}
-              {mode === "login" && (
-                <form onSubmit={handleLogin} className="p-8 space-y-4">
-                  {error && (
-                    <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg p-3">{error}</div>
-                  )}
-                  <div>
-                    <label className="block text-sm font-medium text-[var(--color-text)] mb-1">
-                      {role === "teacher" ? "Имэйл" : "Нэвтрэх код"}
-                    </label>
+              <form onSubmit={handleLogin} className="p-8 space-y-4">
+                {error && (
+                  <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg p-3">{error}</div>
+                )}
+                <div>
+                  <label className="block text-sm font-medium text-[var(--color-text)] mb-1">
+                    {role === "teacher" ? "Имэйл" : "Нэвтрэх код"}
+                  </label>
+                  <input
+                    type="text"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    autoFocus
+                    className="w-full border border-[var(--color-border)] bg-[var(--color-surface-alt)] text-[var(--color-text)] rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+                    placeholder={role === "teacher" ? "example@mail.com" : "S-XXXXXX"}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-[var(--color-text)] mb-1">Нууц үг</label>
+                  <div className="relative">
                     <input
-                      type="text"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
+                      type={showPassword ? "text" : "password"}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
                       required
-                      autoFocus
-                      className="w-full border border-[var(--color-border)] bg-[var(--color-surface-alt)] text-[var(--color-text)] rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
-                      placeholder={role === "teacher" ? "example@mail.com" : "S-XXXXXX"}
+                      className="w-full border border-[var(--color-border)] bg-[var(--color-surface-alt)] text-[var(--color-text)] rounded-lg px-4 py-2.5 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+                      placeholder="••••••"
                     />
+                    <button type="button" onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] hover:text-[var(--color-text)]">
+                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-[var(--color-text)] mb-1">Нууц үг</label>
-                    <div className="relative">
-                      <input
-                        type={showPassword ? "text" : "password"}
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        required
-                        className="w-full border border-[var(--color-border)] bg-[var(--color-surface-alt)] text-[var(--color-text)] rounded-lg px-4 py-2.5 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
-                        placeholder="••••••"
-                      />
-                      <button type="button" onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] hover:text-[var(--color-text)]">
-                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                      </button>
-                    </div>
-                  </div>
-                  <button type="submit" disabled={loading}
-                    className={`w-full py-2.5 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 ${
-                      role === "teacher"
-                        ? "bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-dark)]"
-                        : "bg-[var(--color-accent)] text-black hover:bg-[var(--color-accent-dark)]"
-                    }`}>
-                    {loading ? "Нэвтэрч байна..." : "Нэвтрэх"}
-                  </button>
-                </form>
-              )}
+                </div>
+                <button type="submit" disabled={loading}
+                  className={`w-full py-2.5 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 ${
+                    role === "teacher"
+                      ? "bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-dark)]"
+                      : "bg-[var(--color-accent)] text-black hover:bg-[var(--color-accent-dark)]"
+                  }`}>
+                  {loading ? "Нэвтэрч байна..." : "Нэвтрэх"}
+                </button>
+              </form>
+            </div>
+          )}
 
-              {/* ── Register form (teacher only) ── */}
-              {mode === "register" && (
-                <form onSubmit={handleRegister} className="p-8 space-y-4">
-                  {error && (
-                    <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg p-3">{error}</div>
-                  )}
+          {/* ── Hidden: Admin registration (via ?admin=1) ── */}
+          {step === "admin-register" && (
+            <div>
+              <div className="px-8 py-5 bg-slate-800">
+                <button
+                  onClick={() => { setStep("intro"); setError(""); router.replace("/login"); }}
+                  className="flex items-center gap-1.5 text-white/80 hover:text-white text-sm mb-3 transition-colors"
+                >
+                  <ArrowLeft size={14} /> Буцах
+                </button>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+                    <ShieldCheck size={20} className="text-white" />
+                  </div>
                   <div>
-                    <label className="block text-sm font-medium text-[var(--color-text)] mb-1">Нэр</label>
+                    <p className="font-semibold text-white">Админ бүртгэл</p>
+                    <p className="text-xs text-white/70">Системийн нууц түлхүүртэйгээр шинэ админ үүсгэнэ</p>
+                  </div>
+                </div>
+              </div>
+
+              <form onSubmit={handleAdminRegister} className="p-8 space-y-4">
+                {error && (
+                  <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg p-3">{error}</div>
+                )}
+                <div>
+                  <label className="block text-sm font-medium text-[var(--color-text)] mb-1">Нэр</label>
+                  <input
+                    type="text"
+                    value={adminName}
+                    onChange={(e) => setAdminName(e.target.value)}
+                    required
+                    autoFocus
+                    className="w-full border border-[var(--color-border)] bg-[var(--color-surface-alt)] text-[var(--color-text)] rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-700"
+                    placeholder="Овог нэр"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-[var(--color-text)] mb-1">Имэйл</label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    className="w-full border border-[var(--color-border)] bg-[var(--color-surface-alt)] text-[var(--color-text)] rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-700"
+                    placeholder="admin@example.com"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-[var(--color-text)] mb-1">Нууц үг</label>
+                  <div className="relative">
                     <input
-                      type="text"
-                      value={regName}
-                      onChange={(e) => setRegName(e.target.value)}
+                      type={showPassword ? "text" : "password"}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
                       required
-                      autoFocus
-                      className="w-full border border-[var(--color-border)] bg-[var(--color-surface-alt)] text-[var(--color-text)] rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
-                      placeholder="Овог нэр"
+                      minLength={6}
+                      className="w-full border border-[var(--color-border)] bg-[var(--color-surface-alt)] text-[var(--color-text)] rounded-lg px-4 py-2.5 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-slate-700"
+                      placeholder="6-аас дээш тэмдэгт"
                     />
+                    <button type="button" onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] hover:text-[var(--color-text)]">
+                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-[var(--color-text)] mb-1">Имэйл</label>
-                    <input
-                      type="email"
-                      value={regEmail}
-                      onChange={(e) => setRegEmail(e.target.value)}
-                      required
-                      className="w-full border border-[var(--color-border)] bg-[var(--color-surface-alt)] text-[var(--color-text)] rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
-                      placeholder="example@mail.com"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-[var(--color-text)] mb-1">Нууц үг</label>
-                    <div className="relative">
-                      <input
-                        type={showRegPassword ? "text" : "password"}
-                        value={regPassword}
-                        onChange={(e) => setRegPassword(e.target.value)}
-                        required
-                        className="w-full border border-[var(--color-border)] bg-[var(--color-surface-alt)] text-[var(--color-text)] rounded-lg px-4 py-2.5 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
-                        placeholder="••••••"
-                      />
-                      <button type="button" onClick={() => setShowRegPassword(!showRegPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] hover:text-[var(--color-text)]">
-                        {showRegPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                      </button>
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-[var(--color-text)] mb-1">Нууц үг давтах</label>
-                    <div className="relative">
-                      <input
-                        type={showRegConfirm ? "text" : "password"}
-                        value={regConfirm}
-                        onChange={(e) => setRegConfirm(e.target.value)}
-                        required
-                        className="w-full border border-[var(--color-border)] bg-[var(--color-surface-alt)] text-[var(--color-text)] rounded-lg px-4 py-2.5 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
-                        placeholder="••••••"
-                      />
-                      <button type="button" onClick={() => setShowRegConfirm(!showRegConfirm)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] hover:text-[var(--color-text)]">
-                        {showRegConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
-                      </button>
-                    </div>
-                  </div>
-                  <button type="submit" disabled={loading}
-                    className="w-full py-2.5 rounded-lg text-sm font-semibold bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-dark)] transition-colors disabled:opacity-50">
-                    {loading ? "Бүртгэж байна..." : "Бүртгүүлэх"}
-                  </button>
-                </form>
-              )}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-[var(--color-text)] mb-1">Админ түлхүүр</label>
+                  <input
+                    type="password"
+                    value={adminSecret}
+                    onChange={(e) => setAdminSecret(e.target.value)}
+                    required
+                    className="w-full border border-[var(--color-border)] bg-[var(--color-surface-alt)] text-[var(--color-text)] rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-700 font-mono"
+                    placeholder="ADMIN_SECRET"
+                  />
+                  <p className="text-xs text-[var(--color-text-muted)] mt-1">
+                    Серверийн .env.local дахь ADMIN_SECRET утга
+                  </p>
+                </div>
+                <button type="submit" disabled={loading}
+                  className="w-full py-2.5 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 bg-slate-800 text-white hover:bg-slate-900">
+                  {loading ? "Үүсгэж байна..." : "Админ үүсгэх"}
+                </button>
+              </form>
             </div>
           )}
         </div>

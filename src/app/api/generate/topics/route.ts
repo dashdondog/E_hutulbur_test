@@ -1,10 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCombinedText } from "@/backend/lib/files";
 import { generateTopics } from "@/backend/lib/ai";
+import { getAuthUser } from "@/backend/lib/auth";
 import { subjects } from "@/shared/subjects";
 
 export async function POST(req: NextRequest) {
   try {
+    const user = await getAuthUser();
+    if (!user || (user.role !== "teacher" && user.role !== "admin")) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { subjectId } = await req.json();
     if (!subjectId) {
       return NextResponse.json({ error: "subjectId шаардлагатай" }, { status: 400 });

@@ -10,13 +10,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Бүх талбарыг бөглөнө үү" }, { status: 400 });
     }
 
-    if (role === "admin") {
-      const adminSecret = req.headers.get("x-admin-secret");
-      if (!adminSecret || adminSecret !== (process.env.ADMIN_SECRET || "admin-secret")) {
-        return NextResponse.json({ error: "Admin secret буруу байна" }, { status: 403 });
-      }
-    } else if (role !== "teacher") {
-      return NextResponse.json({ error: "Зөвхөн багш бүртгүүлэх боломжтой" }, { status: 403 });
+    if (role !== "admin") {
+      return NextResponse.json(
+        { error: "Бие даан бүртгүүлэх боломжгүй. Багшийн эрхийг админ үүсгэнэ." },
+        { status: 403 }
+      );
+    }
+    if (!process.env.ADMIN_SECRET) {
+      return NextResponse.json({ error: "Admin бүртгэл идэвхгүй байна" }, { status: 503 });
+    }
+    const adminSecret = req.headers.get("x-admin-secret");
+    if (!adminSecret || adminSecret !== process.env.ADMIN_SECRET) {
+      return NextResponse.json({ error: "Admin secret буруу байна" }, { status: 403 });
     }
 
     if (password.length < 6) {

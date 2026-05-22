@@ -5,12 +5,18 @@ import {
   deleteFile,
   UploadedFile,
 } from "@/backend/lib/files";
+import { getAuthUser } from "@/backend/lib/auth";
 
 // Client extracts PDF text in the browser and posts JSON. Server only persists
 // metadata + text — the binary never crosses the wire, side-stepping Vercel's
 // 4.5MB body cap on textbook-sized PDFs.
 export async function POST(req: NextRequest) {
   try {
+    const user = await getAuthUser();
+    if (!user || (user.role !== "teacher" && user.role !== "admin")) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const body = await req.json();
     const { subjectId, fileName, fileSize, mimeType, extractedText } = body as {
       subjectId?: string;
@@ -56,6 +62,11 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
+  const user = await getAuthUser();
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const subjectId = req.nextUrl.searchParams.get("subjectId");
   if (!subjectId) {
     return NextResponse.json(
@@ -69,6 +80,11 @@ export async function GET(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
+    const user = await getAuthUser();
+    if (!user || (user.role !== "teacher" && user.role !== "admin")) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { fileId } = await req.json();
     if (!fileId) {
       return NextResponse.json(

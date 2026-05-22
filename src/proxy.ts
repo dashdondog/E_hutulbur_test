@@ -2,9 +2,10 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { jwtVerify } from "jose";
 
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || "default-secret-change-me"
-);
+if (!process.env.JWT_SECRET) {
+  throw new Error("JWT_SECRET environment variable is required");
+}
+const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET);
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -32,7 +33,7 @@ export async function proxy(request: NextRequest) {
 
   // ── Unauthenticated ──────────────────────────────────────────
   if (!role) {
-    if (pathname === "/login" || pathname === "/register") {
+    if (pathname === "/login") {
       return NextResponse.next();
     }
     return NextResponse.redirect(new URL("/login", request.url));
@@ -40,10 +41,6 @@ export async function proxy(request: NextRequest) {
 
   // ── Logged in → block auth pages ────────────────────────────
   if (pathname === "/login") {
-    return NextResponse.redirect(new URL(homeFor(role), request.url));
-  }
-
-  if (pathname === "/register") {
     return NextResponse.redirect(new URL(homeFor(role), request.url));
   }
 

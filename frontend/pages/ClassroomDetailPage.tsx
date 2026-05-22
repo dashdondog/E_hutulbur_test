@@ -6,7 +6,7 @@ import { subjects } from "@/shared/subjects";
 import * as store from "@/frontend/lib/store";
 import { Test, TestResult } from "@/shared/types";
 import Link from "next/link";
-import { Users, ClipboardList, BarChart3, Copy, Check, Trash2, Plus, ArrowLeft, UserPlus, Eye, EyeOff, Pencil } from "lucide-react";
+import { Users, ClipboardList, BarChart3, Copy, Check, Trash2, Plus, ArrowLeft, UserPlus, Eye, EyeOff, Pencil, KeyRound, X } from "lucide-react";
 
 interface Member { _id: string; userId: string; userName: string; joinedAt: string; loginCode?: string; }
 interface AssignmentItem { _id: string; testId: string; subjectId: string; testName: string; topicName: string; deadline: string; createdAt: string; }
@@ -44,6 +44,13 @@ export default function ClassroomDetailPage() {
   const [createdStudent, setCreatedStudent] = useState<NewStudent | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [copiedLogin, setCopiedLogin] = useState(false);
+
+  // Reset password modal
+  const [resetTarget, setResetTarget] = useState<Member | null>(null);
+  const [resetting, setResetting] = useState(false);
+  const [resetError, setResetError] = useState("");
+  const [resetResult, setResetResult] = useState<{ loginCode: string; password: string } | null>(null);
+  const [resetCopied, setResetCopied] = useState(false);
 
   const loadData = useCallback(async () => {
     try {
@@ -166,6 +173,48 @@ export default function ClassroomDetailPage() {
       body: JSON.stringify({ userId }),
     });
     loadData();
+  }
+
+  function openReset(m: Member) {
+    setResetTarget(m);
+    setResetError("");
+    setResetResult(null);
+    setResetCopied(false);
+  }
+
+  function closeReset() {
+    setResetTarget(null);
+    setResetResult(null);
+    setResetError("");
+    setResetCopied(false);
+  }
+
+  async function handleResetStudentPassword() {
+    if (!resetTarget) return;
+    setResetError("");
+    setResetting(true);
+    try {
+      const res = await fetch(
+        `/api/classrooms/${id}/students/${resetTarget.userId}/reset-password`,
+        { method: "POST" }
+      );
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Сэргээж чадсангүй");
+      setResetResult({ loginCode: data.loginCode, password: data.password });
+    } catch (err) {
+      setResetError((err as Error).message);
+    } finally {
+      setResetting(false);
+    }
+  }
+
+  async function copyResetCreds() {
+    if (!resetResult) return;
+    await navigator.clipboard.writeText(
+      `Нэвтрэх код: ${resetResult.loginCode}\nНууц үг: ${resetResult.password}`
+    );
+    setResetCopied(true);
+    setTimeout(() => setResetCopied(false), 2000);
   }
 
   function copyCode() {
@@ -317,9 +366,22 @@ export default function ClassroomDetailPage() {
                             )}
                           </td>
                           <td className="px-4 py-3 text-right">
-                            <button onClick={() => handleRemoveStudent(m.userId)} className="text-[var(--color-text-muted)] hover:text-red-500 p-1">
-                              <Trash2 size={14} />
-                            </button>
+                            <div className="flex items-center justify-end gap-1">
+                              <button
+                                onClick={() => openReset(m)}
+                                title="Нууц үг сэргээх"
+                                className="text-[var(--color-text-muted)] hover:text-[var(--color-primary)] p-1"
+                              >
+                                <KeyRound size={14} />
+                              </button>
+                              <button
+                                onClick={() => handleRemoveStudent(m.userId)}
+                                title="Устгах"
+                                className="text-[var(--color-text-muted)] hover:text-red-500 p-1"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       );
@@ -328,6 +390,85 @@ export default function ClassroomDetailPage() {
                 </table>
               )}
             </div>
+
+            {/* Reset password modal */}
+            {resetTarget && (
+              <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={closeReset}>
+                <div className="bg-[var(--color-surface)] rounded-2xl shadow-xl w-full max-w-md border border-[var(--color-border)]" onClick={(e) => e.stopPropagation()}>
+                  <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--color-border)]">
+                    <h2 className="text-lg font-semibold text-[var(--color-text)]">
+                      {resetResult ? "Шинэ нууц үг" : "Нууц үг сэргээх"}
+                    </h2>
+                    <button onClick={closeReset} className="text-[var(--color-text-muted)] hover:text-[var(--color-text)]">
+                      <X size={18} />
+                    </button>
+                  </div>
+
+                  {resetResult ? (
+                    <div className="p-6 space-y-4">
+                      <p className="text-sm text-[var(--color-text-secondary)]">
+                        Дараах нэвтрэх мэдээллийг сурагчид <strong>яг одоо</strong> дамжуулна уу. Энэ нууц үг дахин харагдахгүй.
+                      </p>
+                      <div className="bg-[var(--color-surface-alt)] rounded-lg p-4 space-y-2 font-mono text-sm">
+                        <div>
+                          <span className="text-[var(--color-text-muted)]">Код:</span>{" "}
+                          <span className="text-[var(--color-primary)] font-bold">{resetResult.loginCode}</span>
+                        </div>
+                        <div>
+                          <span className="text-[var(--color-text-muted)]">Шинэ нууц үг:</span>{" "}
+                          <span className="text-[var(--color-text)] font-bold">{resetResult.password}</span>
+                        </div>
+                      </div>
+                      <button
+                        onClick={copyResetCreds}
+                        className="w-full flex items-center justify-center gap-2 bg-[var(--color-primary)] text-white py-2.5 rounded-lg text-sm font-medium hover:bg-[var(--color-primary-dark)] transition-colors"
+                      >
+                        {resetCopied ? <><Check size={16} /> Хуулагдлаа</> : <><Copy size={16} /> Хуулах</>}
+                      </button>
+                      <button
+                        onClick={closeReset}
+                        className="w-full bg-[var(--color-surface-alt)] text-[var(--color-text)] py-2.5 rounded-lg text-sm font-medium hover:bg-[var(--color-border)] transition-colors"
+                      >
+                        Хаах
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="p-6 space-y-4">
+                      {resetError && (
+                        <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg p-3">
+                          {resetError}
+                        </div>
+                      )}
+                      <div className="bg-[var(--color-surface-alt)] rounded-lg p-4">
+                        <p className="text-sm text-[var(--color-text-secondary)]">Сурагч</p>
+                        <p className="font-semibold text-[var(--color-text)] mt-0.5">{resetTarget.userName}</p>
+                        {resetTarget.loginCode && (
+                          <p className="text-xs text-[var(--color-text-muted)] font-mono mt-0.5">{resetTarget.loginCode}</p>
+                        )}
+                      </div>
+                      <p className="text-sm text-[var(--color-text-secondary)]">
+                        Шинэ түр нууц үг үүсгэх үү? Хуучин нууц үг үйлчлэхгүй болно.
+                      </p>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={closeReset}
+                          className="flex-1 bg-[var(--color-surface-alt)] text-[var(--color-text)] py-2.5 rounded-lg text-sm font-medium hover:bg-[var(--color-border)] transition-colors"
+                        >
+                          Болих
+                        </button>
+                        <button
+                          onClick={handleResetStudentPassword}
+                          disabled={resetting}
+                          className="flex-1 bg-[var(--color-primary)] text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-[var(--color-primary-dark)] transition-colors disabled:opacity-50"
+                        >
+                          {resetting ? "Үүсгэж байна..." : "Сэргээх"}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Add student modal */}
             {showAddStudent && (

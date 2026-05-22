@@ -79,6 +79,19 @@ export default function Sidebar() {
               </div>
               <span>Тохиргоо</span>
             </Link>
+            <Link
+              href="/change-password"
+              className={`flex items-center gap-3 px-4 py-2.5 text-sm transition-all ${
+                pathname === "/change-password"
+                  ? "bg-white/15 text-white font-medium"
+                  : "text-slate-300 hover:bg-white/8 hover:text-white"
+              }`}
+            >
+              <div className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center">
+                <KeyRound size={16} className="text-slate-300" />
+              </div>
+              <span>Нууц үг солих</span>
+            </Link>
           </>
         ) : (
           <>

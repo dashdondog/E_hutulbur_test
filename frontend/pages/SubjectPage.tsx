@@ -13,7 +13,7 @@ import TestsTab from "@/frontend/components/TestsTab";
 import ResultsTab from "@/frontend/components/ResultsTab";
 import ChatTab from "@/frontend/components/ChatTab";
 import { useAuth } from "@/frontend/lib/auth-context";
-import { FolderOpen, BookOpen, List, ClipboardList, BarChart3, MessageSquare } from "lucide-react";
+import { FolderOpen, BookOpen, List, ClipboardList, BarChart3, MessageSquare, FileText, ListTree, FileCheck2 } from "lucide-react";
 import type { ComponentType } from "react";
 import type { LucideProps } from "lucide-react";
 
@@ -292,7 +292,7 @@ export default function SubjectPage() {
                 {subject.name}
               </h1>
               <p className="text-xs sm:text-sm text-[var(--color-text-secondary)]">
-                11-р ангийн сурах бичиг • {files.length} файл
+                Сурах бичиг • {files.length} файл
               </p>
             </div>
           </div>
@@ -404,7 +404,7 @@ export default function SubjectPage() {
                         <Spinner /> Хөтөлбөр үүсгэж байна...
                       </>
                     ) : (
-                      <>📋 Загвараар хөтөлбөр үүсгэх</>
+                      <><FileText size={16} /> Загвараар хөтөлбөр үүсгэх</>
                     )}
                   </button>
                   <button
@@ -417,7 +417,7 @@ export default function SubjectPage() {
                         <Spinner /> Сэдвүүд гаргаж байна...
                       </>
                     ) : (
-                      <>📑 Сэдвүүд гаргах</>
+                      <><ListTree size={16} /> Сэдвүүд гаргах</>
                     )}
                   </button>
                   {topics.length > 0 && (
@@ -431,7 +431,7 @@ export default function SubjectPage() {
                           <Spinner /> Бүх тест үүсгэж байна...
                         </>
                       ) : (
-                        <>✅ Бүх сэдвээр тест үүсгэх</>
+                        <><FileCheck2 size={16} /> Бүх сэдвээр тест үүсгэх</>
                       )}
                     </button>
                   )}

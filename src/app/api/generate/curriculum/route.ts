@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 const pdfParse = require("pdf-parse/lib/pdf-parse");
 import { getCombinedText } from "@/backend/lib/files";
 import { extractSchedule, generateChapterPlan } from "@/backend/lib/ai";
+import { getAuthUser } from "@/backend/lib/auth";
 import { subjects } from "@/shared/subjects";
 
 async function fetchTemplateText(url: string): Promise<string> {
@@ -39,6 +40,11 @@ async function fetchTemplateText(url: string): Promise<string> {
 
 export async function POST(req: NextRequest) {
   try {
+    const user = await getAuthUser();
+    if (!user || (user.role !== "teacher" && user.role !== "admin")) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { subjectId, templateUrl, templateText: templateTextInput } = await req.json();
     if (!subjectId) {
       return NextResponse.json({ error: "subjectId шаардлагатай" }, { status: 400 });

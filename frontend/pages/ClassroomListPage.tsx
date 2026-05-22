@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Users, Plus, Copy, Check, Trash2 } from "lucide-react";
 import { subjects } from "@/shared/subjects";
 import { useAuth } from "@/frontend/lib/auth-context";
+import * as store from "@/frontend/lib/store";
 
 interface ClassroomItem {
   _id: string;
@@ -25,9 +26,22 @@ export default function ClassroomListPage() {
   const [creating, setCreating] = useState(false);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
 
-  const availableSubjects = user?.teacherSubjects?.length
+  const [savedSubjectIds, setSavedSubjectIds] = useState<Set<string>>(new Set());
+
+  // Refresh the saved-subject set whenever the create modal opens so newly
+  // saved curricula/topics show up without a page reload.
+  useEffect(() => {
+    if (!showCreate) return;
+    const ids = subjects
+      .filter((s) => store.getCurricula(s.id).length > 0 || store.getTopics(s.id).length > 0)
+      .map((s) => s.id);
+    setSavedSubjectIds(new Set(ids));
+  }, [showCreate]);
+
+  const teacherSubjects = user?.teacherSubjects?.length
     ? subjects.filter((s) => user.teacherSubjects!.includes(s.id))
     : subjects;
+  const availableSubjects = teacherSubjects.filter((s) => savedSubjectIds.has(s.id));
 
   const loadClassrooms = async () => {
     try {
@@ -116,12 +130,18 @@ export default function ClassroomListPage() {
                   <select
                     value={newSubjectId}
                     onChange={(e) => setNewSubjectId(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-alt)] text-[var(--color-text)] text-sm"
+                    disabled={availableSubjects.length === 0}
+                    className="w-full px-3 py-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-alt)] text-[var(--color-text)] text-sm disabled:opacity-60"
                     autoFocus
                   >
                     <option value="">Хичээл сонгох...</option>
                     {availableSubjects.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
                   </select>
+                  {availableSubjects.length === 0 && (
+                    <p className="text-xs text-[var(--color-text-muted)] mt-1">
+                      Хадгалсан хичээл алга. Эхлээд хичээл сонгож хөтөлбөр эсвэл сэдвүүд үүсгэнэ үү.
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label className="text-sm text-[var(--color-text-secondary)] block mb-1">Ангийн нэр</label>
