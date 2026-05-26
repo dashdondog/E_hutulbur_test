@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { subjects } from "@/shared/subjects";
 import { Subject, Curriculum, Topic, Test } from "@/shared/types";
 import * as store from "@/frontend/lib/store";
@@ -40,9 +40,26 @@ export default function SubjectPage() {
   const [tests, setTests] = useState<Test[]>([]);
   const [generating, setGenerating] = useState<string | null>(null);
   const [genProgress, setGenProgress] = useState<{ current: number; total: number; topic: string } | null>(null);
-  const [templateText, setTemplateText] = useState("");
-  const [templateFileName, setTemplateFileName] = useState("");
+  const [elapsed, setElapsed] = useState(0);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const templateKey = `templateText_${subjectId}`;
+  const templateNameKey = `templateFileName_${subjectId}`;
+  const [templateText, setTemplateTextState] = useState(() => {
+    try { return localStorage.getItem(templateKey) || ""; } catch { return ""; }
+  });
+  const [templateFileName, setTemplateFileNameState] = useState(() => {
+    try { return localStorage.getItem(templateNameKey) || ""; } catch { return ""; }
+  });
   const [templateUploading, setTemplateUploading] = useState(false);
+
+  function setTemplateText(val: string) {
+    setTemplateTextState(val);
+    try { if (val) localStorage.setItem(templateKey, val); else localStorage.removeItem(templateKey); } catch {}
+  }
+  function setTemplateFileName(val: string) {
+    setTemplateFileNameState(val);
+    try { if (val) localStorage.setItem(templateNameKey, val); else localStorage.removeItem(templateNameKey); } catch {}
+  }
 
   async function handleTemplateFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -100,6 +117,16 @@ export default function SubjectPage() {
     reloadAll();
   }, [loadFiles, reloadAll]);
 
+  useEffect(() => {
+    if (generating) {
+      setElapsed(0);
+      timerRef.current = setInterval(() => setElapsed(s => s + 1), 1000);
+    } else {
+      if (timerRef.current) clearInterval(timerRef.current);
+    }
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, [generating]);
+
   // AI Generate All 4 Lesson Plans in one call
   async function handleGenerateCurriculum() {
     if (files.length === 0) {
@@ -119,6 +146,7 @@ export default function SubjectPage() {
       });
       const data = await res.json();
       if (!res.ok) {
+        console.error("Curriculum 400 error:", data.error);
         alert(data.error);
         return;
       }
@@ -166,9 +194,13 @@ export default function SubjectPage() {
       });
       const data = await res.json();
       if (!res.ok) {
+        console.error("Topics error:", data.error);
         alert(data.error);
         return;
       }
+      console.log("Topics received:", data.topics?.length, "textLength:", data._textLength, data.topics);
+      // Clear old topics for this subject before saving new ones
+      store.getTopics(subjectId).forEach(t => store.deleteTopic(t.id));
       // Save topics to local storage
       data.topics.forEach(
         (
@@ -437,27 +469,52 @@ export default function SubjectPage() {
                   )}
                 </div>
                 {generating && (
-                  <div className="mt-3 space-y-2">
-                    <div className="flex items-center gap-2 text-sm text-[var(--color-primary)]">
-                      <Spinner />
-                      AI боловсруулж байна... Хэдэн секунд хүлээнэ үү
-                    </div>
-                    {genProgress && (
-                      <div className="bg-[var(--color-surface)] rounded-lg border border-[var(--color-primary)]/20 p-3">
-                        <div className="flex items-center justify-between text-xs text-[var(--color-text-secondary)] mb-1">
-                          <span>{genProgress.topic}</span>
-                          {genProgress.total > 0 && (
-                            <span className="font-medium">{genProgress.current}/{genProgress.total}</span>
-                          )}
-                        </div>
-                        {genProgress.total > 0 && (
-                          <div className="w-full bg-[var(--color-surface-alt)] rounded-full h-2">
-                            <div
-                              className="bg-[var(--color-primary)] h-2 rounded-full transition-all duration-500"
-                              style={{ width: `${(genProgress.current / genProgress.total) * 100}%` }}
-                            />
-                          </div>
+                  <div className="mt-4 bg-[var(--color-surface)] rounded-xl border border-[var(--color-primary)]/20 p-4 space-y-3">
+                    {/* Timer row */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-sm font-medium text-[var(--color-primary)]">
+                        <Spinner />
+                        AI боловсруулж байна...
+                      </div>
+                      <div className="flex items-center gap-3 text-xs text-[var(--color-text-secondary)]">
+                        <span className="font-mono bg-[var(--color-surface-alt)] px-2 py-1 rounded-md">
+                          {String(Math.floor(elapsed / 60)).padStart(2, "0")}:{String(elapsed % 60).padStart(2, "0")}
+                        </span>
+                        {generating === "curriculum" && elapsed < 60 && (
+                          <span>~{Math.max(0, 30 - elapsed)}с үлдсэн</span>
                         )}
+                      </div>
+                    </div>
+
+                    {/* Steps */}
+                    {generating === "curriculum" && (
+                      <div className="space-y-1.5 text-xs text-[var(--color-text-secondary)]">
+                        <Step done={elapsed > 5}  active={elapsed <= 5}  label="1. Бүлгүүдийг ялгаж байна..." />
+                        <Step done={elapsed > 15} active={elapsed > 5 && elapsed <= 15} label="2. Сэдвүүдийг 10 долоо хоногт хуваарьлаж байна..." />
+                        <Step done={genProgress !== null && genProgress.total > 0 && genProgress.current >= genProgress.total}
+                              active={elapsed > 15} label="3. Бүлэг бүрийн нэгж хөтөлбөр үүсгэж байна..." />
+                      </div>
+                    )}
+                    {generating === "topics" && (
+                      <div className="space-y-1.5 text-xs text-[var(--color-text-secondary)]">
+                        <Step done={elapsed > 8}  active={elapsed <= 8}  label="1. Сурах бичгийн агуулгыг уншиж байна..." />
+                        <Step done={false} active={elapsed > 8} label="2. Бүлэг, сэдвүүдийг ялгаж байна..." />
+                      </div>
+                    )}
+
+                    {/* Progress bar */}
+                    {genProgress && genProgress.total > 0 && (
+                      <div>
+                        <div className="flex justify-between text-xs text-[var(--color-text-muted)] mb-1">
+                          <span>{genProgress.topic}</span>
+                          <span className="font-medium">{genProgress.current}/{genProgress.total} бүлэг</span>
+                        </div>
+                        <div className="w-full bg-[var(--color-surface-alt)] rounded-full h-2">
+                          <div
+                            className="bg-[var(--color-primary)] h-2 rounded-full transition-all duration-500"
+                            style={{ width: `${(genProgress.current / genProgress.total) * 100}%` }}
+                          />
+                        </div>
                       </div>
                     )}
                   </div>
@@ -528,23 +585,41 @@ export default function SubjectPage() {
         {activeTab === "topics" && (
           <div>
             {files.length > 0 && topics.length === 0 && (
-              <div className="bg-[var(--color-primary)]/10 border border-[var(--color-primary)]/20 rounded-xl p-4 mb-4 flex items-center justify-between">
-                <p className="text-sm text-[var(--color-primary)]">
-                  PDF-ээс автоматаар сэдвүүд гаргах уу?
-                </p>
-                <button
-                  onClick={handleGenerateTopics}
-                  disabled={!!generating}
-                  className="flex items-center gap-2 bg-[var(--color-primary)] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--color-primary-dark)] disabled:opacity-50"
-                >
-                  {generating === "topics" ? (
-                    <>
-                      <Spinner /> Гаргаж байна...
-                    </>
-                  ) : (
-                    "AI-р гаргах"
-                  )}
-                </button>
+              <div className="bg-[var(--color-primary)]/10 border border-[var(--color-primary)]/20 rounded-xl p-4 mb-4">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-[var(--color-primary)]">
+                    PDF-ээс автоматаар сэдвүүд гаргах уу?
+                  </p>
+                  <button
+                    onClick={handleGenerateTopics}
+                    disabled={!!generating}
+                    className="flex items-center gap-2 bg-[var(--color-primary)] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--color-primary-dark)] disabled:opacity-50"
+                  >
+                    {generating === "topics" ? (
+                      <>
+                        <Spinner /> Гаргаж байна...
+                      </>
+                    ) : (
+                      "AI-р гаргах"
+                    )}
+                  </button>
+                </div>
+                {generating === "topics" && (
+                  <div className="mt-3 bg-[var(--color-surface)] rounded-lg border border-[var(--color-primary)]/20 p-3 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-sm font-medium text-[var(--color-primary)]">
+                        <Spinner /> AI боловсруулж байна...
+                      </div>
+                      <span className="font-mono text-xs bg-[var(--color-surface-alt)] px-2 py-1 rounded-md text-[var(--color-text-secondary)]">
+                        {String(Math.floor(elapsed / 60)).padStart(2, "0")}:{String(elapsed % 60).padStart(2, "0")}
+                      </span>
+                    </div>
+                    <div className="space-y-1.5 text-xs text-[var(--color-text-secondary)]">
+                      <Step done={elapsed > 8}  active={elapsed <= 8}  label="1. Сурах бичгийн агуулгыг уншиж байна..." />
+                      <Step done={false} active={elapsed > 8} label="2. Бүлэг, сэдвүүдийг ялгаж байна..." />
+                    </div>
+                  </div>
+                )}
               </div>
             )}
             <TopicsTab
@@ -604,6 +679,17 @@ export default function SubjectPage() {
           <ResultsTab subjectId={subjectId} />
         )}
       </div>
+    </div>
+  );
+}
+
+function Step({ done, active, label }: { done: boolean; active: boolean; label: string }) {
+  return (
+    <div className={`flex items-center gap-2 transition-opacity ${active ? "opacity-100" : done ? "opacity-60" : "opacity-30"}`}>
+      <span className="text-base leading-none">
+        {done ? "✅" : active ? "⏳" : "⬜"}
+      </span>
+      <span className={active ? "text-[var(--color-primary)] font-medium" : ""}>{label}</span>
     </div>
   );
 }

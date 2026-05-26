@@ -412,6 +412,15 @@ export default function CurriculumTab({ subjectId, curricula, onUpdate }: Props)
 
 // ============ VIEW ============
 
+function toStr(val: unknown): string {
+  if (val === null || val === undefined) return "";
+  if (typeof val === "string") return val;
+  if (typeof val === "number" || typeof val === "boolean") return String(val);
+  if (Array.isArray(val)) return val.map(toStr).join(", ");
+  if (typeof val === "object") return Object.values(val as Record<string, unknown>).map(toStr).join(" • ");
+  return String(val);
+}
+
 function LessonPlanView({ plan, criteria }: { plan: LessonPlan; criteria?: CriteriaItem[] }) {
   return (
     <div className="space-y-5">
@@ -422,12 +431,12 @@ function LessonPlanView({ plan, criteria }: { plan: LessonPlan; criteria?: Crite
         <InfoBox label="Хугацаа" value={plan.duration} />
       </div>
 
-      <div><SLabel>Зорилго</SLabel><p className="text-sm text-[var(--color-text)] mt-1">{plan.goal}</p></div>
+      <div><SLabel>Зорилго</SLabel><p className="text-sm text-[var(--color-text)] mt-1">{toStr(plan.goal)}</p></div>
 
       <div>
         <SLabel>Зорилтууд</SLabel>
         <ul className="mt-1 space-y-1">
-          {plan.objectives.map((obj, i) => <li key={i} className="text-sm text-[var(--color-text)] flex gap-2"><span className="text-[var(--color-primary)]">•</span>{obj}</li>)}
+          {(Array.isArray(plan.objectives) ? plan.objectives : []).map((obj, i) => <li key={i} className="text-sm text-[var(--color-text)] flex gap-2"><span className="text-[var(--color-primary)]">•</span>{toStr(obj)}</li>)}
         </ul>
       </div>
 
@@ -466,19 +475,19 @@ function LessonPlanView({ plan, criteria }: { plan: LessonPlan; criteria?: Crite
         </div>
       )}
 
-      <div><SLabel>Хичээлийн хэлбэр</SLabel><p className="text-sm text-[var(--color-text)] mt-1">{plan.lessonForm}</p></div>
+      <div><SLabel>Хичээлийн хэлбэр</SLabel><p className="text-sm text-[var(--color-text)] mt-1">{toStr(plan.lessonForm)}</p></div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
         <div>
           <SLabel>Арга технологи</SLabel>
           <div className="flex flex-wrap gap-1.5 mt-1">
-            {plan.methods.map((m, i) => <span key={i} className="bg-[var(--color-primary)]/10 text-[var(--color-primary)] text-xs px-2.5 py-1 rounded-full">{m}</span>)}
+            {(Array.isArray(plan.methods) ? plan.methods : []).map((m, i) => <span key={i} className="bg-[var(--color-primary)]/10 text-[var(--color-primary)] text-xs px-2.5 py-1 rounded-full">{toStr(m)}</span>)}
           </div>
         </div>
         <div>
           <SLabel>Хэрэглэгдэхүүн</SLabel>
           <div className="flex flex-wrap gap-1.5 mt-1">
-            {plan.materials.map((m, i) => <span key={i} className="bg-[var(--color-accent)]/10 text-[var(--color-accent)] text-xs px-2.5 py-1 rounded-full">{m}</span>)}
+            {(Array.isArray(plan.materials) ? plan.materials : []).map((m, i) => <span key={i} className="bg-[var(--color-accent)]/10 text-[var(--color-accent)] text-xs px-2.5 py-1 rounded-full">{toStr(m)}</span>)}
           </div>
         </div>
       </div>
@@ -499,12 +508,12 @@ function LessonPlanView({ plan, criteria }: { plan: LessonPlan; criteria?: Crite
             <tbody>
               {plan.steps.map((s, i) => (
                 <tr key={i} className={i % 2 === 0 ? "bg-[var(--color-surface)]" : "bg-[var(--color-surface-alt)]"}>
-                  <td className="border border-[var(--color-border)] px-3 py-2 font-medium text-[var(--color-primary)] text-center">{s.time}</td>
-                  <td className="border border-[var(--color-border)] px-3 py-2 font-medium text-[var(--color-text)]">{s.phase}</td>
-                  <td className="border border-[var(--color-border)] px-3 py-2 text-[var(--color-text-secondary)]">{s.teacherActivity}</td>
-                  <td className="border border-[var(--color-border)] px-3 py-2 text-[var(--color-text-secondary)]">{s.studentActivity}</td>
-                  <td className="border border-[var(--color-border)] px-3 py-2 text-[var(--color-text-secondary)] text-xs">{s.methods}</td>
-                  <td className="border border-[var(--color-border)] px-3 py-2 text-[var(--color-text-secondary)] text-xs">{s.assessment}</td>
+                  <td className="border border-[var(--color-border)] px-3 py-2 font-medium text-[var(--color-primary)] text-center">{toStr(s.time)}</td>
+                  <td className="border border-[var(--color-border)] px-3 py-2 font-medium text-[var(--color-text)]">{toStr(s.phase)}</td>
+                  <td className="border border-[var(--color-border)] px-3 py-2 text-[var(--color-text-secondary)]">{toStr(s.teacherActivity)}</td>
+                  <td className="border border-[var(--color-border)] px-3 py-2 text-[var(--color-text-secondary)]">{toStr(s.studentActivity)}</td>
+                  <td className="border border-[var(--color-border)] px-3 py-2 text-[var(--color-text-secondary)] text-xs">{toStr(s.methods)}</td>
+                  <td className="border border-[var(--color-border)] px-3 py-2 text-[var(--color-text-secondary)] text-xs">{toStr(s.assessment)}</td>
                 </tr>
               ))}
             </tbody>
@@ -512,8 +521,8 @@ function LessonPlanView({ plan, criteria }: { plan: LessonPlan; criteria?: Crite
         </div>
       </div>
 
-      {plan.homework && <div><SLabel>Гэрийн даалгавар</SLabel><p className="text-sm text-[var(--color-text)] mt-1">{plan.homework}</p></div>}
-      {plan.reflection && <div><SLabel>Эргэцүүлэл</SLabel><p className="text-sm text-[var(--color-text)] mt-1 italic">{plan.reflection}</p></div>}
+      {plan.homework && <div><SLabel>Гэрийн даалгавар</SLabel><p className="text-sm text-[var(--color-text)] mt-1">{toStr(plan.homework)}</p></div>}
+      {plan.reflection && <div><SLabel>Эргэцүүлэл</SLabel><p className="text-sm text-[var(--color-text)] mt-1 italic">{toStr(plan.reflection)}</p></div>}
       {criteria && criteria.length > 0 && <CriteriaTable criteria={criteria} />}
     </div>
   );

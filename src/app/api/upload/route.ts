@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const pdfParse = require("pdf-parse/lib/pdf-parse");
 import {
   saveFileWithText,
   getFilesBySubject,
@@ -7,9 +9,6 @@ import {
 } from "@/backend/lib/files";
 import { getAuthUser } from "@/backend/lib/auth";
 
-// Client extracts PDF text in the browser and posts JSON. Server only persists
-// metadata + text — the binary never crosses the wire, side-stepping Vercel's
-// 4.5MB body cap on textbook-sized PDFs.
 export async function POST(req: NextRequest) {
   try {
     const user = await getAuthUser();
@@ -17,31 +16,41 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await req.json();
-    const { subjectId, fileName, fileSize, mimeType, extractedText } = body as {
-      subjectId?: string;
-      fileName?: string;
-      fileSize?: number;
-      mimeType?: string;
-      extractedText?: string;
-    };
+    const formData = await req.formData();
+    const file = formData.get("file") as File | null;
+    const subjectId = formData.get("subjectId") as string | null;
 
-    if (!subjectId || !fileName) {
+    if (!subjectId || !file) {
       return NextResponse.json(
-        { error: "subjectId болон fileName шаардлагатай" },
+        { error: "subjectId болон файл шаардлагатай" },
         { status: 400 }
       );
     }
 
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+    const isText = file.type === "text/plain" || /\.(txt|md)$/i.test(file.name);
+
+    let text = "";
+    if (isPdf) {
+      const data = await pdfParse(buffer);
+      text = data.text || "";
+    } else if (isText) {
+      text = buffer.toString("utf-8");
+    } else {
+      text = `[Файл: ${file.name}]`;
+    }
+
+    console.log(`[upload] ${file.name}: extracted ${text.length} chars`);
+
     const fileMeta: UploadedFile = {
       id: crypto.randomUUID(),
       subjectId,
-      fileName,
-      fileSize: fileSize ?? 0,
-      mimeType: mimeType ?? "",
+      fileName: file.name,
+      fileSize: file.size,
+      mimeType: file.type,
       uploadedAt: new Date().toISOString(),
     };
-    const text = extractedText ?? "";
     await saveFileWithText(fileMeta, text);
 
     return NextResponse.json({

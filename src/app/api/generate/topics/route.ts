@@ -22,6 +22,7 @@ export async function POST(req: NextRequest) {
     }
 
     const text = await getCombinedText(subjectId);
+    console.log(`[topics] text length: ${text.length}, preview: "${text.slice(0, 200)}"`);
     if (!text.trim()) {
       return NextResponse.json(
         { error: "Эхлээд PDF файл байршуулна уу" },
@@ -31,7 +32,7 @@ export async function POST(req: NextRequest) {
 
     const topics = await generateTopics(subject.name, text);
 
-    return NextResponse.json({ success: true, topics });
+    return NextResponse.json({ success: true, topics, _textLength: text.length });
   } catch (error) {
     console.error("Generate topics error:", error);
     return NextResponse.json(

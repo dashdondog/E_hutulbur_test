@@ -4,17 +4,28 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
 function truncateText(text: string, maxChars = 6000): string {
   if (text.length <= maxChars) return text;
-  return text.slice(0, maxChars) + "\n\n[... текст хасагдсан ...]";
+  // Sample from start (40%), middle (40%), end (20%) to cover large documents
+  const startLen = Math.floor(maxChars * 0.4);
+  const midLen = Math.floor(maxChars * 0.4);
+  const endLen = maxChars - startLen - midLen;
+  const midStart = Math.floor(text.length / 2) - Math.floor(midLen / 2);
+  return (
+    text.slice(0, startLen) +
+    "\n\n[... эхний хэсгийн дараа ...]\n\n" +
+    text.slice(midStart, midStart + midLen) +
+    "\n\n[... дунд хэсгийн дараа ...]\n\n" +
+    text.slice(-endLen)
+  );
 }
 
 const MODEL_FALLBACK_ORDER = [
   "gemini-2.5-flash",
-  "gemini-2.5-flash-lite",
+  "gemini-2.5-pro",
   "gemini-2.0-flash",
   "gemini-2.0-flash-lite",
 ];
 
-async function generateJSON(prompt: string, retries = 2): Promise<string> {
+async function generateJSON(prompt: string, retries = 1): Promise<string> {
   const generationConfig = {
     temperature: 0.3,
     responseMimeType: "application/json",
@@ -86,25 +97,21 @@ async function generateJSON(prompt: string, retries = 2): Promise<string> {
 // Step 1a: Extract just chapter names (small response)
 async function extractChapterNames(
   subjectName: string,
-  text: string,
-  templateText: string
+  text: string
 ): Promise<string[]> {
-  const jsonStr = await generateJSON(`Чи 11-р ангийн "${subjectName}" хичээлийн багш. Багшийн оруулсан ЗАГВАР ХӨТӨЛБӨРИЙН ЗААВРЫН ДАГУУ бүлгүүдийг ялгаж гарга.
+  // Use first 12000 chars to capture table of contents from large PDFs
+  const jsonStr = await generateJSON(`Чи 11-р ангийн "${subjectName}" хичээлийн багш.
 
-============ ЗАГВАР ХӨТӨЛБӨР (ЗААВАЛ ДАГАХ) ============
-${truncateText(templateText, 4000)}
-=======================================================
+СУРАХ БИЧИГ (эхний хэсэг — гарчиг, агуулгын хүснэгт байна):
+${truncateText(text, 12000)}
 
-Сурах бичгийн агуулга (зөвхөн агуулга шалгахад):
-${truncateText(text, 4000)}
+Дээрх сурах бичгийн БҮЛГҮҮДИЙГ (chapter/раздел/бүлэг гэх мэт) ялгаж гарга.
+- Бүлгийн нэрийг яг сурах бичигт байгаагаар нь ав
+- Дэд сэдвүүдийг биш, зөвхөн үндсэн БҮЛГҮҮДИЙГ л гарга (2-8 бүлэг)
+- Монгол кирилл үсгээр бич
+- Агуулгын хүснэгт (гарчгийн жагсаалт) байвал тэнд байгаа бүлгүүдийг ав
 
-ЗААВАР:
-- ЗАГВАРТ заасан бүлгийн тоо, нэрлэх дүрэм, дугаарлалт, форматыг ЯГ дагаж мөрдөнө.
-- Хэрэв загварт тодорхой бүлгийн нэр заасан бол ҮҮНИЙГ ӨӨРЧЛӨХГҮЙ. Зөвхөн дутууг сурах бичгээс нөхнө.
-- Хэрэв загварт зөвхөн дүрэм/формат байгаа бол сурах бичгийн бүлгүүдийг тэр форматтай нийцүүлж бич.
-- Бүлгийн нэрийг МОНГОЛ КИРИЛЛ үсгээр зөв бичнэ.
-
-JSON формат:
+JSON:
 {
   "chapters": ["Бүлэг 1. Нэр", "Бүлэг 2. Нэр"]
 }`);
@@ -116,33 +123,24 @@ JSON формат:
 async function extractTopicsForChapters(
   subjectName: string,
   chapterNames: string[],
-  text: string,
-  templateText: string
+  text: string
 ): Promise<{ weekNumber: number; topicName: string; description: string; hours: number; chapterIndex: number }[]> {
   const chapterList = chapterNames.map((n, i) => `${i + 1}. ${n}`).join("\n");
 
-  const jsonStr = await generateJSON(`Чи 11-р ангийн "${subjectName}" хичээлийн багш. Багшийн оруулсан ЗАГВАР ХӨТӨЛБӨРИЙН ЗААВРЫН ДАГУУ сэдвүүдийг хуваарьла.
+  const jsonStr = await generateJSON(`Чи 11-р ангийн "${subjectName}" хичээлийн багш.
 
-============ ЗАГВАР ХӨТӨЛБӨР (ЗААВАЛ ДАГАХ) ============
-${truncateText(templateText, 4000)}
-=======================================================
+СУРАХ БИЧИГ:
+${truncateText(text, 5000)}
 
 Бүлгүүд:
 ${chapterList}
 
-Сурах бичгийн агуулга:
-${truncateText(text, 4000)}
+Дээрх сурах бичгийн агуулгаас бүлэг бүрийн сэдвүүдийг ялгаж, 10 долоо хоногт хуваарьла.
+- Сэдвүүдийг яг сурах бичигт байгаагаар ав.
+- weekNumber: 1-10, chapterIndex: 0-ээс эхэлнэ, hours: 2.
+- Тайлбар 5-10 үг.
 
-ЗААВАР:
-- ЗАГВАРТ заасан сэдвийн нэр, дугаарлалт, тайлбарын стиль, цагийн хуваарилалтыг ЯГ дагаж мөрдөнө.
-- Хэрэв загварт тухайн бүлгийн сэдвүүдийг тоочсон бол ҮҮНИЙГ ОРХИХГҮЙ ашиглана.
-- Хэрэв загвар зөвхөн ерөнхий формат заасан бол сурах бичгийн сэдвүүдээс түүж тэр формат руу буулга.
-- БҮХ сэдвийг 10 долоо хоногт хуваарьла (weekNumber: 1-10).
-- chapterIndex нь 0-ээс эхэлнэ.
-- Сэдэв бүрт цаг загварт заасны дагуу өг (заагаагүй бол 2 цаг).
-- Хариу БОГИНО байна. Тайлбар нь 5-10 үг.
-
-JSON формат:
+JSON:
 {
   "topics": [
     { "weekNumber": 1, "topicName": "1.1 Сэдэв", "description": "Товч", "hours": 2, "chapterIndex": 0 }
@@ -155,23 +153,26 @@ JSON формат:
 // Step 1: Full schedule extraction (two-step: chapters then topics)
 export async function extractSchedule(
   subjectName: string,
-  text: string,
-  templateText: string
+  text: string
 ): Promise<{
   chapters: {
     name: string;
     topics: { weekNumber: number; topicName: string; description: string; hours: number }[];
   }[];
 }> {
-  // Step 1a: Get chapter names (small, reliable call)
-  const chapterNames = await extractChapterNames(subjectName, text, templateText);
+  // Step 1a: Get chapter names (small, reliable call) — retry once if empty
+  let chapterNames = await extractChapterNames(subjectName, text);
+  if (!chapterNames || chapterNames.length === 0) {
+    console.log("extractChapterNames returned empty, retrying...");
+    chapterNames = await extractChapterNames(subjectName, text);
+  }
 
   if (!chapterNames || chapterNames.length === 0) {
     return { chapters: [] };
   }
 
   // Step 1b: Get all topics distributed across 10 weeks
-  const allTopics = await extractTopicsForChapters(subjectName, chapterNames, text, templateText);
+  const allTopics = await extractTopicsForChapters(subjectName, chapterNames, text);
 
   // Group topics by chapter
   const chapters = chapterNames.map((name, index) => ({
@@ -214,23 +215,20 @@ export async function generateChapterPlan(
 }> {
   const topicList = topics.map(t => `${t.weekNumber}-р долоо хоног: ${t.topicName}`).join(", ");
 
-  const jsonStr = await generateJSON(`Чи 11-р ангийн "${subjectName}" хичээлийн багш. Багшийн оруулсан ЗАГВАР ХӨТӨЛБӨРИЙН ЗААВРЫН ДАГУУ "${chapterName}" бүлгээр нэгж хөтөлбөр бэлд.
+  const jsonStr = await generateJSON(`Чи 11-р ангийн "${subjectName}" хичээлийн багш. "${chapterName}" бүлгийн нэгж хөтөлбөр бэлд.
 
-============ ЗАГВАР ХӨТӨЛБӨР (ЗААВАЛ ЯГ ЭНЭ ЗААВРААР БИЧИХ) ============
-${truncateText(templateText, 6000)}
-====================================================================
-
-ЯГ ДАГАХ ДҮРЭМ:
-1. Зорилго, зорилт, арга, хэрэглэгдэхүүн, хичээлийн үе шат, үнэлгээний шалгуурын БИЧИХ ХЭЛБЭР, ҮГИЙН СОНГОЛТ, ДЭЛГЭРЭНГҮЙН ТҮВШИНГ загвартай ЯГ адилхан болго.
-2. Загварт заасан үе шатны нэрс, цагийн хуваарь, аргын тоо, шалгуурын тоо болон хувийг ҮНДЭСНИЙ ЗААВАР гэж үзэн ДАГА.
-3. Загварт жишээ үг хэллэг (зорилго: "...", шалгуур: "...") байвал тэр стилийг хуулна.
-4. Загвараас ЗӨВХӨН тухайн бүлэгт хамаарах агуулгыг солино — хүрээ/бүтцийг битгий өөрчил.
-5. Загварт заагаагүй талбарыг өөрөө бөглөж болох ч, заасан талбарыг ӨӨРЧЛӨХИЙГ ХОРИГЛОНО.
+СУРАХ БИЧГИЙН АГУУЛГА (хөтөлбөрийн АГУУЛГЫГ энэнээс ав):
+${truncateText(text, 3500)}
 
 Энэ бүлгийн сэдвүүд: ${topicList}
 
-Сурах бичгийн холбогдох агуулга (зөвхөн агуулгыг бөглөхөд ашиглана):
-${truncateText(text, 2500)}
+ЗАГВАРЫН БҮТЭЦ (зөвхөн ХЭЛБЭР, ФОРМАТЫГ дага — агуулгыг биш):
+${truncateText(templateText, 5000)}
+
+ДҮРЭМ:
+1. Хөтөлбөрийн АГУУЛГ (зорилго, зорилт, үйл ажиллагаа) — СУРАХ БИЧГЭЭС ав.
+2. Хөтөлбөрийн ХЭЛБЭР (үе шатны нэр, цаг, бүтэц, шалгуур) — ЗАГВАРААС ав.
+3. Загварт байгаа бүтцийг хадгалж, зөвхөн агуулгыг сурах бичгийн дагуу бөглө.
 
 Монгол хэлээр бичнэ. Зөвхөн JSON формат:
 
@@ -263,7 +261,7 @@ ${truncateText(text, 2500)}
 
 // Legacy
 export async function generateCurriculum(subjectName: string, text: string, templateText: string) {
-  const schedule = await extractSchedule(subjectName, text, templateText);
+  const schedule = await extractSchedule(subjectName, text);
   const ch = schedule.chapters[0];
   const plan = await generateChapterPlan(subjectName, ch.name, ch.topics, text, templateText);
   return { ...plan, weeks: 10 };
@@ -278,7 +276,7 @@ export async function generateTopics(
   const jsonStr = await generateJSON(`Чи 11-р ангийн "${subjectName}" хичээлийн багш. Доорх сурах бичгийн агуулгаас бүх сэдвүүдийг ялгаж гаргаж өг.
 
 Сурах бичгийн агуулга:
-${truncateText(text)}
+${truncateText(text, 15000)}
 
 Бүлэг/сэдэв бүрийг ялгаж, дэд сэдвүүдтэй нь гаргана уу.
 

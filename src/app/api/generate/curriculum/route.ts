@@ -88,68 +88,67 @@ export async function POST(req: NextRequest) {
     // Step 1: Extract schedule (chapters + topics distributed across 10 weeks)
     let schedule;
     try {
-      schedule = await extractSchedule(subject.name, text, templateText);
+      schedule = await extractSchedule(subject.name, text);
     } catch (err) {
       console.error("First extractSchedule attempt failed, retrying...", err);
       // Retry once
-      schedule = await extractSchedule(subject.name, text, templateText);
+      schedule = await extractSchedule(subject.name, text);
     }
 
     if (!schedule.chapters || schedule.chapters.length === 0) {
       return NextResponse.json({ error: "Бүлэг олдсонгүй" }, { status: 400 });
     }
 
-    // Step 2: Generate detailed plan for each chapter
-    const plans = [];
-    for (const ch of schedule.chapters) {
-      try {
-        const plan = await generateChapterPlan(subject.name, ch.name, ch.topics, text, templateText);
-        // Ensure name is never empty
-        if (!plan.name || !plan.name.trim()) {
-          plan.name = `Нэгж хөтөлбөр - ${ch.name}`;
-        }
-        if (plan.content && !plan.content.chapter) {
-          plan.content.chapter = ch.name;
-        }
-        plans.push(plan);
-      } catch (err) {
-        console.error(`Error generating plan for "${ch.name}":`, err);
-        // Still include with basic info if generation fails
-        plans.push({
-          name: `Нэгж хөтөлбөр - ${ch.name}`,
-          goal: ch.name,
-          content: {
-            subject: subject.name,
-            grade: "11-р анги",
-            chapter: ch.name,
-            topicSchedule: ch.topics,
-            duration: "80 минут (2 цаг)",
+    // Step 2: Generate detailed plan for each chapter — all chapters in parallel
+    const plans = await Promise.all(
+      schedule.chapters.map(async (ch) => {
+        try {
+          const plan = await generateChapterPlan(subject.name, ch.name, ch.topics, text, templateText);
+          if (!plan.name || !plan.name.trim()) {
+            plan.name = `Нэгж хөтөлбөр - ${ch.name}`;
+          }
+          if (plan.content && !plan.content.chapter) {
+            plan.content.chapter = ch.name;
+          }
+          return plan;
+        } catch (err) {
+          console.error(`Error generating plan for "${ch.name}":`, err);
+          return {
+            name: `Нэгж хөтөлбөр - ${ch.name}`,
             goal: ch.name,
-            objectives: [],
-            lessonForm: "",
-            methods: [],
-            materials: [],
-            steps: [
-              { time: "5 мин", phase: "Хичээлийн эхлэл", teacherActivity: "", studentActivity: "", methods: "", assessment: "" },
-              { time: "25 мин", phase: "Шинэ мэдлэг олгох", teacherActivity: "", studentActivity: "", methods: "", assessment: "" },
-              { time: "20 мин", phase: "Бататгах", teacherActivity: "", studentActivity: "", methods: "", assessment: "" },
-              { time: "15 мин", phase: "Чадвар хөгжүүлэх", teacherActivity: "", studentActivity: "", methods: "", assessment: "" },
-              { time: "10 мин", phase: "Дүгнэлт", teacherActivity: "", studentActivity: "", methods: "", assessment: "" },
-              { time: "5 мин", phase: "Гэрийн даалгавар", teacherActivity: "", studentActivity: "", methods: "", assessment: "" },
+            content: {
+              subject: subject.name,
+              grade: "11-р анги",
+              chapter: ch.name,
+              topicSchedule: ch.topics,
+              duration: "80 минут (2 цаг)",
+              goal: ch.name,
+              objectives: [],
+              lessonForm: "",
+              methods: [],
+              materials: [],
+              steps: [
+                { time: "5 мин", phase: "Хичээлийн эхлэл", teacherActivity: "", studentActivity: "", methods: "", assessment: "" },
+                { time: "25 мин", phase: "Шинэ мэдлэг олгох", teacherActivity: "", studentActivity: "", methods: "", assessment: "" },
+                { time: "20 мин", phase: "Бататгах", teacherActivity: "", studentActivity: "", methods: "", assessment: "" },
+                { time: "15 мин", phase: "Чадвар хөгжүүлэх", teacherActivity: "", studentActivity: "", methods: "", assessment: "" },
+                { time: "10 мин", phase: "Дүгнэлт", teacherActivity: "", studentActivity: "", methods: "", assessment: "" },
+                { time: "5 мин", phase: "Гэрийн даалгавар", teacherActivity: "", studentActivity: "", methods: "", assessment: "" },
+              ],
+              homework: "",
+              reflection: "",
+            },
+            criteria: [
+              { name: "Идэвхтэй оролцоо", percentage: 10, description: "Хичээлд идэвхтэй оролцох" },
+              { name: "Даалгаврын гүйцэтгэл", percentage: 30, description: "Хичээл дээрх дадлага ажил" },
+              { name: "Бие даасан ажил", percentage: 20, description: "Гэрийн даалгавар" },
+              { name: "Явцын шалгалт", percentage: 20, description: "Бүлгийн шалгалт" },
+              { name: "Улирлын шалгалт", percentage: 20, description: "Нэгдсэн шалгалт" },
             ],
-            homework: "",
-            reflection: "",
-          },
-          criteria: [
-            { name: "Идэвхтэй оролцоо", percentage: 10, description: "Хичээлд идэвхтэй оролцох" },
-            { name: "Даалгаврын гүйцэтгэл", percentage: 30, description: "Хичээл дээрх дадлага ажил" },
-            { name: "Бие даасан ажил", percentage: 20, description: "Гэрийн даалгавар" },
-            { name: "Явцын шалгалт", percentage: 20, description: "Бүлгийн шалгалт" },
-            { name: "Улирлын шалгалт", percentage: 20, description: "Нэгдсэн шалгалт" },
-          ],
-        });
-      }
-    }
+          };
+        }
+      })
+    );
 
     return NextResponse.json({ success: true, plans });
   } catch (error) {
