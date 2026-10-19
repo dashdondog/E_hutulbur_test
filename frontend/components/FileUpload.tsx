@@ -9,6 +9,8 @@ interface UploadedFile {
   fileSize: number;
   mimeType: string;
   uploadedAt: string;
+  hasText?: boolean;
+  charCount?: number;
 }
 
 interface Props {
@@ -26,6 +28,7 @@ function formatSize(bytes: number) {
 export default function FileUpload({ subjectId, files, onFilesChange }: Props) {
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  const [uploadWarning, setUploadWarning] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const uploadFile = useCallback(
@@ -41,10 +44,16 @@ export default function FileUpload({ subjectId, files, onFilesChange }: Props) {
           body: fd,
         });
 
+        const data = await res.json();
         if (!res.ok) {
-          const err = await res.json();
-          alert(err.error || "Файл байршуулахад алдаа гарлаа");
+          alert(data.error || "Файл байршуулахад алдаа гарлаа");
           return;
+        }
+
+        if (data.warning) {
+          setUploadWarning(data.warning);
+        } else {
+          setUploadWarning(null);
         }
 
         onFilesChange();
@@ -145,11 +154,23 @@ export default function FileUpload({ subjectId, files, onFilesChange }: Props) {
           </>
         ) : (
           <>
-            
             <span>📤 Файл сонгох эсвэл чирж оруулах</span>
           </>
         )}
       </div>
+
+      {uploadWarning && (
+        <div className="mt-2 p-2.5 bg-amber-500/10 border border-amber-500/30 rounded-md text-xs text-amber-700 dark:text-amber-300 flex items-start justify-between gap-2">
+          <span>⚠️ {uploadWarning}</span>
+          <button
+            type="button"
+            onClick={() => setUploadWarning(null)}
+            className="text-xs font-bold opacity-70 hover:opacity-100 ml-1"
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       {/* File list as chips */}
       {files.length > 0 && (
@@ -161,7 +182,21 @@ export default function FileUpload({ subjectId, files, onFilesChange }: Props) {
             >
               {getFileIcon(f.mimeType, f.fileName)}
               <div className="flex-1 min-w-0">
-                <p className="text-sm text-[var(--color-text)] truncate">{f.fileName}</p>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="text-sm font-medium text-[var(--color-text)] truncate max-w-[240px] sm:max-w-md">
+                    {f.fileName}
+                  </p>
+                  {f.hasText === false && (
+                    <span className="text-[10px] bg-amber-500/20 text-amber-600 dark:text-amber-400 px-1.5 py-0.5 rounded font-medium">
+                      Зурган PDF (стандартаар үүснэ)
+                    </span>
+                  )}
+                  {f.hasText === true && f.charCount !== undefined && f.charCount > 0 && (
+                    <span className="text-[10px] bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 px-1.5 py-0.5 rounded font-medium">
+                      ✓ Текст уншигдсан ({f.charCount.toLocaleString()} тэмдэгт)
+                    </span>
+                  )}
+                </div>
                 <p className="text-xs text-[var(--color-text-muted)]">{formatSize(f.fileSize)}</p>
               </div>
               <button

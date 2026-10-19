@@ -94,16 +94,24 @@ async function generateJSON(prompt: string, retries = 1): Promise<string> {
   throw new Error("generateJSON: бүх загвар ашиглах боломжгүй байна");
 }
 
+// Helper to check if text contains real content beyond headers and whitespace
+function getCleanText(text: string): string {
+  return text.replace(/===[^=]+===/g, "").trim();
+}
+
 // Step 1a: Extract just chapter names (small response)
 async function extractChapterNames(
   subjectName: string,
   text: string
 ): Promise<string[]> {
-  // Use first 12000 chars to capture table of contents from large PDFs
-  const jsonStr = await generateJSON(`Чи 11-р ангийн "${subjectName}" хичээлийн багш.
+  const clean = getCleanText(text);
+  const hasText = clean.length >= 50;
+
+  const prompt = hasText
+    ? `Чи 11-р ангийн "${subjectName}" хичээлийн багш.
 
 СУРАХ БИЧИГ (эхний хэсэг — гарчиг, агуулгын хүснэгт байна):
-${truncateText(text, 12000)}
+${truncateText(clean, 12000)}
 
 Дээрх сурах бичгийн БҮЛГҮҮДИЙГ (chapter/раздел/бүлэг гэх мэт) ялгаж гарга.
 - Бүлгийн нэрийг яг сурах бичигт байгаагаар нь ав
@@ -114,9 +122,23 @@ ${truncateText(text, 12000)}
 JSON:
 {
   "chapters": ["Бүлэг 1. Нэр", "Бүлэг 2. Нэр"]
-}`);
-  const result = JSON.parse(jsonStr);
-  return result.chapters;
+}`
+    : `Чи Монгол Улсын ЕБС-ийн 11-р ангийн "${subjectName}" хичээлийн багш.
+Энэ хичээлийн сургалтын үндэсний стандартын хөтөлбөрийн дагуу 4-6 үндсэн БҮЛГИЙГ ялгаж гарга.
+
+JSON:
+{
+  "chapters": ["1-р бүлэг. ...", "2-р бүлэг. ...", "3-р бүлэг. ...", "4-р бүлэг. ..."]
+}`;
+
+  try {
+    const jsonStr = await generateJSON(prompt);
+    const result = JSON.parse(jsonStr);
+    return Array.isArray(result.chapters) && result.chapters.length > 0 ? result.chapters : [];
+  } catch (err) {
+    console.error("extractChapterNames error:", err);
+    return [];
+  }
 }
 
 // Step 1b: Extract topics for ALL chapters and distribute across 10 weeks
@@ -126,17 +148,16 @@ async function extractTopicsForChapters(
   text: string
 ): Promise<{ weekNumber: number; topicName: string; description: string; hours: number; chapterIndex: number }[]> {
   const chapterList = chapterNames.map((n, i) => `${i + 1}. ${n}`).join("\n");
+  const clean = getCleanText(text);
+  const hasText = clean.length >= 50;
 
-  const jsonStr = await generateJSON(`Чи 11-р ангийн "${subjectName}" хичээлийн багш.
-
-СУРАХ БИЧИГ:
-${truncateText(text, 5000)}
-
+  const prompt = `Чи 11-р ангийн "${subjectName}" хичээлийн багш.
+${hasText ? `СУРАХ БИЧИГ:\n${truncateText(clean, 5000)}\n\n` : ""}
 Бүлгүүд:
 ${chapterList}
 
-Дээрх сурах бичгийн агуулгаас бүлэг бүрийн сэдвүүдийг ялгаж, 10 долоо хоногт хуваарьла.
-- Сэдвүүдийг яг сурах бичигт байгаагаар ав.
+Эдгээр бүлгүүдийн сэдвүүдийг ялгаж, 10 долоо хоногт хуваарьла.
+- Сэдвүүдийг хичээлийн агуулгын дагуу логик дараалалтай гарга.
 - weekNumber: 1-10, chapterIndex: 0-ээс эхэлнэ, hours: 2.
 - Тайлбар 5-10 үг.
 
@@ -145,9 +166,15 @@ JSON:
   "topics": [
     { "weekNumber": 1, "topicName": "1.1 Сэдэв", "description": "Товч", "hours": 2, "chapterIndex": 0 }
   ]
-}`);
-  const result = JSON.parse(jsonStr);
-  return result.topics;
+}`;
+  try {
+    const jsonStr = await generateJSON(prompt);
+    const result = JSON.parse(jsonStr);
+    return Array.isArray(result.topics) ? result.topics : [];
+  } catch (err) {
+    console.error("extractTopicsForChapters error:", err);
+    return [];
+  }
 }
 
 // Step 1: Full schedule extraction (two-step: chapters then topics)
@@ -160,19 +187,26 @@ export async function extractSchedule(
     topics: { weekNumber: number; topicName: string; description: string; hours: number }[];
   }[];
 }> {
-  // Step 1a: Get chapter names (small, reliable call) — retry once if empty
+  // Step 1a: Get chapter names
   let chapterNames = await extractChapterNames(subjectName, text);
   if (!chapterNames || chapterNames.length === 0) {
-    console.log("extractChapterNames returned empty, retrying...");
-    chapterNames = await extractChapterNames(subjectName, text);
+    console.log("extractChapterNames returned empty, retrying with national curriculum standard...");
+    chapterNames = await extractChapterNames(subjectName, "");
   }
 
   if (!chapterNames || chapterNames.length === 0) {
-    return { chapters: [] };
+    chapterNames = [
+      `1-р бүлэг. ${subjectName} үндсэн ойлголт`,
+      `2-р бүлэг. ${subjectName} хэрэглээ ба дадлага`,
+      `3-р бүлэг. ${subjectName} ахисан түвшин`,
+    ];
   }
 
   // Step 1b: Get all topics distributed across 10 weeks
-  const allTopics = await extractTopicsForChapters(subjectName, chapterNames, text);
+  let allTopics = await extractTopicsForChapters(subjectName, chapterNames, text);
+  if (!allTopics || allTopics.length === 0) {
+    allTopics = await extractTopicsForChapters(subjectName, chapterNames, "");
+  }
 
   // Group topics by chapter
   const chapters = chapterNames.map((name, index) => ({
@@ -182,8 +216,24 @@ export async function extractSchedule(
       .map(({ weekNumber, topicName, description, hours }) => ({ weekNumber, topicName, description, hours })),
   }));
 
-  // Remove chapters with no topics
-  return { chapters: chapters.filter(ch => ch.topics.length > 0) };
+  // Ensure each chapter has at least one topic if possible
+  const validChapters = chapters.filter(ch => ch.topics.length > 0);
+  if (validChapters.length > 0) return { chapters: validChapters };
+
+  // Fallback: create default 10-week topics distributed to chapters
+  return {
+    chapters: chapterNames.map((name, idx) => ({
+      name,
+      topics: [
+        {
+          weekNumber: idx + 1,
+          topicName: `${idx + 1}-р долоо хоног. ${name}`,
+          description: "Үндсэн агуулга ба дадлага ажил",
+          hours: 2,
+        },
+      ],
+    })),
+  };
 }
 
 // Step 2: Generate detailed lesson plan for ONE chapter (with pre-assigned topics)
@@ -273,22 +323,68 @@ export async function generateTopics(
 ): Promise<
   { name: string; description: string; subtopics: string[] }[]
 > {
-  const jsonStr = await generateJSON(`Чи 11-р ангийн "${subjectName}" хичээлийн багш. Доорх сурах бичгийн агуулгаас бүх сэдвүүдийг ялгаж гаргаж өг.
+  const clean = getCleanText(text);
+  const hasText = clean.length >= 50;
+
+  const prompt = hasText
+    ? `Чи 11-р ангийн "${subjectName}" хичээлийн багш. Доорх сурах бичгийн агуулгаас бүх сэдвүүдийг ялгаж гаргаж өг.
 
 Сурах бичгийн агуулга:
-${truncateText(text, 15000)}
+${truncateText(clean, 15000)}
 
 Бүлэг/сэдэв бүрийг ялгаж, дэд сэдвүүдтэй нь гаргана уу.
 
 Дараах JSON формат руу яг тохируулж хариулна уу (бусад тайлбар бүү бич):
 [
   {
-    "name": "Сэдвийн нэр (Жишээ: 1-р бүлэг. Кинематик)",
+    "name": "Сэдвийн нэр (Жишээ: 1-р бүлэг эсвэл Unit 1...)",
     "description": "Сэдвийн товч тайлбар",
     "subtopics": ["Дэд сэдэв 1", "Дэд сэдэв 2"]
   }
-]`);
-  return JSON.parse(jsonStr);
+]`
+    : `Чи Монгол Улсын ЕБС-ийн 11-р ангийн "${subjectName}" хичээлийн багш.
+Энэ хичээлийн Монгол Улсын БШУЯ-ны стандартын сургалтын хөтөлбөрийн дагуу нийт бүх үндсэн бүлэг, сэдвүүдийг (дор хаяж 6-10 сэдэв) дэд сэдвүүдийн хамт гаргаж өг.
+
+Дараах JSON формат руу яг тохируулж хариулна уу (бусад тайлбар бүү бич):
+[
+  {
+    "name": "Сэдвийн нэр (Жишээ: 1-р бүлэг эсвэл Unit 1...)",
+    "description": "Сэдвийн товч тайлбар",
+    "subtopics": ["Дэд сэдэв 1", "Дэд сэдэв 2", "Дэд сэдэв 3"]
+  }
+]`;
+
+  let jsonStr = await generateJSON(prompt);
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(jsonStr);
+  } catch {
+    parsed = [];
+  }
+
+  // Fallback if empty array returned
+  if (!Array.isArray(parsed) || parsed.length === 0) {
+    console.log("generateTopics returned empty array, triggering curriculum fallback...");
+    const fallbackPrompt = `Чи Монгол Улсын ЕБС-ийн 11-р ангийн "${subjectName}" хичээлийн багш.
+Энэ хичээлийн жилийн сургалтын үндэсний хөтөлбөрийн дагуу 6-8 үндсэн сэдвийг дэд сэдвүүдтэй нь гарга.
+
+Зөвхөн JSON массив:
+[
+  {
+    "name": "Unit 1 / 1-р бүлэг. Сэдвийн нэр",
+    "description": "Сэдвийн товч тайлбар",
+    "subtopics": ["Дэд сэдэв 1", "Дэд сэдэв 2"]
+  }
+]`;
+    try {
+      const fbStr = await generateJSON(fallbackPrompt);
+      parsed = JSON.parse(fbStr);
+    } catch (fbErr) {
+      console.error("Fallback generateTopics error:", fbErr);
+    }
+  }
+
+  return Array.isArray(parsed) ? parsed : [];
 }
 
 // Chat: edit an existing curriculum or test JSON via natural-language instructions.
@@ -354,16 +450,22 @@ export async function generateTestForTopic(
     points: number;
   }[];
 }> {
+  const clean = getCleanText(text);
+  const hasText = clean.length >= 50;
+
+  const contentBlock = hasText
+    ? `Сурах бичгийн холбогдох агуулга:\n${truncateText(clean, 2000)}`
+    : `Монгол Улсын 11-р ангийн "${subjectName}" хичээлийн улсын стандарт хөтөлбөрийн дагуу.`;
+
   const jsonStr = await generateJSON(`Чи 11-р ангийн "${subjectName}" хичээлийн багш. "${topicName}" сэдвээр ${questionCount} асуулттай тест бэлдэж өг.
 
 Дэд сэдвүүд: ${subtopics.join(", ")}
 
-Сурах бичгийн холбогдох агуулга:
-${truncateText(text, 2000)}
+${contentBlock}
 
 Дараах шаардлагатай:
 - Олон сонголттой (4 хариулттай, 1 зөв) болон Үнэн/Худал асуултууд холино
-- Асуултууд сурах бичгийн агуулгад тулгуурласан байна
+- Асуултууд сэдвийн агуулгад тулгуурласан байна
 - Хэцүү, дунд, хялбар асуултууд холилдсон байна
 - Асуулт бүрт оноо (хялбар=1, дунд=2, хэцүү=3)
 

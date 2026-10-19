@@ -31,6 +31,12 @@ export async function POST(req: NextRequest) {
     }
 
     const topics = await generateTopics(subject.name, text);
+    if (!topics || topics.length === 0) {
+      return NextResponse.json(
+        { error: "AI сэдэв үүсгэж чадсангүй. Дахин оролдоно уу." },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json({ success: true, topics, _textLength: text.length });
   } catch (error) {

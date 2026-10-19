@@ -23,6 +23,8 @@ interface UploadedFile {
   fileSize: number;
   mimeType: string;
   uploadedAt: string;
+  hasText?: boolean;
+  charCount?: number;
 }
 
 type Tab = "files" | "curriculum" | "topics" | "tests" | "chat" | "results";
@@ -198,7 +200,11 @@ export default function SubjectPage() {
         alert(data.error);
         return;
       }
-      console.log("Topics received:", data.topics?.length, "textLength:", data._textLength, data.topics);
+      if (!data.topics || !Array.isArray(data.topics) || data.topics.length === 0) {
+        alert("Сэдэв үүсгэж чадсангүй. Дахин оролдоно уу.");
+        return;
+      }
+      console.log("Topics received:", data.topics.length, "textLength:", data._textLength, data.topics);
       // Clear old topics for this subject before saving new ones
       store.getTopics(subjectId).forEach(t => store.deleteTopic(t.id));
       // Save topics to local storage

@@ -7,6 +7,8 @@ export interface UploadedFile {
   fileSize: number;
   mimeType: string;
   uploadedAt: string;
+  hasText?: boolean;
+  charCount?: number;
 }
 
 interface FileDoc extends UploadedFile {
@@ -16,8 +18,18 @@ interface FileDoc extends UploadedFile {
 const COLLECTION = "subjectFiles";
 
 function projectMeta(doc: FileDoc): UploadedFile {
-  const { id, subjectId, fileName, fileSize, mimeType, uploadedAt } = doc;
-  return { id, subjectId, fileName, fileSize, mimeType, uploadedAt };
+  const { id, subjectId, fileName, fileSize, mimeType, uploadedAt, hasText, charCount } = doc;
+  const chars = charCount ?? (doc.extractedText ? doc.extractedText.trim().length : 0);
+  return {
+    id,
+    subjectId,
+    fileName,
+    fileSize,
+    mimeType,
+    uploadedAt,
+    hasText: hasText ?? (chars > 20),
+    charCount: chars,
+  };
 }
 
 export async function getFilesBySubject(subjectId: string): Promise<UploadedFile[]> {
@@ -26,7 +38,6 @@ export async function getFilesBySubject(subjectId: string): Promise<UploadedFile
     .collection<FileDoc>(COLLECTION)
     .find({ subjectId })
     .sort({ uploadedAt: -1 })
-    .project<FileDoc>({ extractedText: 0 })
     .toArray();
   return docs.map(projectMeta);
 }
