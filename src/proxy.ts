@@ -33,7 +33,8 @@ export async function proxy(request: NextRequest) {
 
   // ── Unauthenticated ──────────────────────────────────────────
   if (!role) {
-    if (pathname === "/login") {
+    // Public landing page + login
+    if (pathname === "/" || pathname === "/login") {
       return NextResponse.next();
     }
     return NextResponse.redirect(new URL("/login", request.url));

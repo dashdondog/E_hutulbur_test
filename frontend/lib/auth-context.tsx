@@ -64,7 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   async function logout() {
     await fetch("/api/auth/logout", { method: "POST" });
     setUser(null);
-    window.location.href = "/login";
+    window.location.href = "/";
   }
 
   async function updateTeacherSubjects(teacherSubjects: string[]) {
